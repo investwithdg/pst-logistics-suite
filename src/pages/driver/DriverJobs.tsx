@@ -1,39 +1,122 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import OrderCard from "@/components/OrderCard";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { useApp } from "@/contexts/AppContext";
+import { Order } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Navigation as NavigationIcon, CheckCircle, Camera, FileSignature } from "lucide-react";
-
-const mockActiveJob = {
-  id: "DEL-2025-001",
-  customer: "John Doe",
-  customerPhone: "(555) 123-4567",
-  pickup: "123 Main St, Chicago, IL 60601",
-  dropoff: "456 Oak Ave, Naperville, IL 60540",
-  distance: "18.5 mi",
-  status: "picked-up",
-  amount: 52.50,
-  instructions: "Please call upon arrival. Fragile items.",
-};
-
-const mockAvailableJobs = [
-  {
-    id: "DEL-2025-005",
-    customer: "Alice Cooper",
-    pickup: "789 Elm St, Chicago, IL",
-    dropoff: "321 Pine Rd, Aurora, IL",
-    distance: "12.3 mi",
-    amount: 45.75,
-  },
-];
+import { CheckCircle, Camera, FileSignature } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 const DriverJobs = () => {
+  const navigate = useNavigate();
+  const { orders, currentUser, updateOrderStatus, updateOrder } = useApp();
+  const [loading, setLoading] = useState(false);
   const [showPOD, setShowPOD] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [podNotes, setPodNotes] = useState("");
+
+  if (!currentUser) {
+    navigate("/sign-in");
+    return null;
+  }
+
+  const myJobs = orders.filter(o => o.driverId === currentUser.id);
+  const activeJob = myJobs.find(o => ['assigned', 'picked-up', 'in-transit'].includes(o.status));
+  const completedJobs = myJobs.filter(o => ['delivered', 'completed'].includes(o.status));
+
+  const handleOrderAction = async (action: string, order: Order) => {
+    setLoading(true);
+
+    try {
+      if (action === "pickup") {
+        toast({
+          title: "Marking as picked up...",
+          description: "Updating order status",
+        });
+        
+        const response = await api.updatePickup({ orderId: order.id });
+        if (response.success) {
+          updateOrderStatus(order.id, "picked-up");
+          toast({
+            title: "Package picked up",
+            description: "Status updated successfully",
+          });
+        }
+      } else if (action === "transit") {
+        const response = await api.updateStatus({ orderId: order.id, status: "in-transit" });
+        if (response.success) {
+          updateOrderStatus(order.id, "in-transit");
+          toast({
+            title: "En route to destination",
+            description: "Status updated to in transit",
+          });
+        }
+      } else if (action === "deliver") {
+        setSelectedOrder(order);
+        setShowPOD(true);
+      }
+    } catch (error) {
+      toast({
+        title: "Update failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitPOD = async () => {
+    if (!selectedOrder) return;
+
+    setLoading(true);
+    toast({
+      title: "Submitting proof of delivery...",
+      description: "Processing delivery confirmation",
+    });
+
+    try {
+      const response = await api.submitProof({
+        orderId: selectedOrder.id,
+        notes: podNotes,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (response.success) {
+        updateOrder(selectedOrder.id, {
+          status: "delivered",
+          proofOfDelivery: {
+            notes: podNotes,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        
+        toast({
+          title: "Delivery completed!",
+          description: `Order ${selectedOrder.id} marked as delivered`,
+        });
+        
+        setShowPOD(false);
+        setSelectedOrder(null);
+        setPodNotes("");
+      }
+    } catch (error) {
+      toast({
+        title: "Submission failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -45,131 +128,56 @@ const DriverJobs = () => {
           <p className="text-sm text-muted-foreground">Manage your delivery assignments</p>
         </div>
 
-        {/* Active Job Card */}
-        {mockActiveJob && (
-          <Card className="mb-6 border-primary">
-            <CardHeader className="bg-primary/5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <Badge className="bg-info/10 text-info border-info/20 mb-2">Active Delivery</Badge>
-                  <CardTitle className="text-xl">Order #{mockActiveJob.id}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">Customer: {mockActiveJob.customer}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">${mockActiveJob.amount.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">{mockActiveJob.distance}</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div className="space-y-3">
-                <div className="flex gap-3">
-                  <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium mb-1">Pickup Location</p>
-                    <p className="text-sm text-muted-foreground">{mockActiveJob.pickup}</p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-3">
-                  <MapPin className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium mb-1">Dropoff Location</p>
-                    <p className="text-sm text-muted-foreground">{mockActiveJob.dropoff}</p>
-                  </div>
-                </div>
-              </div>
+        {loading && <LoadingSpinner message="Processing..." />}
 
-              {mockActiveJob.instructions && (
-                <div className="bg-warning/5 border border-warning/20 rounded-lg p-3">
-                  <p className="text-sm font-medium mb-1">Special Instructions</p>
-                  <p className="text-sm text-muted-foreground">{mockActiveJob.instructions}</p>
-                </div>
-              )}
-
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-sm font-medium mb-1">Customer Contact</p>
-                <p className="text-sm text-muted-foreground">{mockActiveJob.customerPhone}</p>
-              </div>
-
-              <div className="flex flex-col gap-2 pt-2">
-                <Button size="lg" className="w-full">
-                  <NavigationIcon className="h-5 w-5 mr-2" />
-                  Navigate to Dropoff
-                </Button>
-                
-                {mockActiveJob.status === "picked-up" ? (
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="w-full border-success text-success hover:bg-success hover:text-success-foreground"
-                    onClick={() => setShowPOD(true)}
-                  >
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    Mark as Delivered
-                  </Button>
-                ) : (
-                  <Button size="lg" variant="outline" className="w-full">
-                    <CheckCircle className="h-5 w-5 mr-2" />
-                    Mark as Picked Up
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Active Job */}
+        {activeJob && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">Active Delivery</h2>
+            <OrderCard 
+              order={activeJob} 
+              role="driver"
+              onAction={handleOrderAction}
+            />
+          </div>
         )}
 
-        {/* Available Jobs */}
-        <Tabs defaultValue="available" className="space-y-4">
+        {/* Available & Completed Jobs */}
+        <Tabs defaultValue="completed" className="space-y-4">
           <TabsList className="w-full">
-            <TabsTrigger value="available" className="flex-1">
-              Available Jobs ({mockAvailableJobs.length})
-            </TabsTrigger>
             <TabsTrigger value="completed" className="flex-1">
-              Completed Today (3)
+              Completed Today ({completedJobs.length})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="available" className="space-y-3">
-            {mockAvailableJobs.map((job) => (
-              <Card key={job.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="font-semibold mb-1">Order #{job.id}</p>
-                      <p className="text-sm text-muted-foreground">Customer: {job.customer}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-primary">${job.amount.toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">{job.distance}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-muted-foreground">{job.pickup}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-muted-foreground">{job.dropoff}</p>
-                    </div>
-                  </div>
-
-                  <Button className="w-full">Accept Job</Button>
+          <TabsContent value="completed">
+            {completedJobs.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center py-12">
+                  <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <p className="text-muted-foreground">No completed deliveries today</p>
                 </CardContent>
               </Card>
-            ))}
-          </TabsContent>
-
-          <TabsContent value="completed">
-            <Card>
-              <CardContent className="pt-6 text-center py-12">
-                <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />
-                <p className="text-muted-foreground">You've completed 3 deliveries today</p>
-                <p className="text-sm text-muted-foreground mt-2">Total earnings: $145.25</p>
-              </CardContent>
-            </Card>
+            ) : (
+              <div className="space-y-3">
+                {completedJobs.map((job) => (
+                  <OrderCard 
+                    key={job.id} 
+                    order={job} 
+                    role="driver"
+                  />
+                ))}
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />
+                    <p className="font-semibold mb-2">Great work today!</p>
+                    <p className="text-sm text-muted-foreground">
+                      Total earnings: ${completedJobs.reduce((sum, j) => sum + j.totalPrice, 0).toFixed(2)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -207,10 +215,23 @@ const DriverJobs = () => {
               />
             </div>
 
-            <Button className="w-full" size="lg">
-              <CheckCircle className="h-5 w-5 mr-2" />
-              Complete Delivery
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPOD(false)}
+                className="flex-1"
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSubmitPOD}
+                className="flex-1"
+                disabled={loading}
+              >
+                {loading ? "Submitting..." : "Complete Delivery"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

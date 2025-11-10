@@ -1,68 +1,84 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import OrderCard from "@/components/OrderCard";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { useApp } from "@/contexts/AppContext";
+import { Order } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, User, Clock, Map } from "lucide-react";
-
-const mockOrders = [
-  {
-    id: "DEL-2025-003",
-    customer: "Jane Smith",
-    pickup: "123 Commerce Dr, Chicago, IL",
-    dropoff: "789 Business Pkwy, Schaumburg, IL",
-    distance: "15.2 mi",
-    status: "ready",
-    amount: 62.50,
-    createdAt: "10:30 AM",
-  },
-  {
-    id: "DEL-2025-004",
-    customer: "Robert Chen",
-    pickup: "456 Industrial Rd, Chicago, IL",
-    dropoff: "321 Tech Center, Naperville, IL",
-    distance: "22.8 mi",
-    status: "ready",
-    amount: 82.00,
-    createdAt: "11:15 AM",
-  },
-];
-
-const mockAssignedOrders = [
-  {
-    id: "DEL-2025-001",
-    customer: "John Doe",
-    driver: "Mike Johnson",
-    pickup: "123 Main St, Chicago, IL",
-    dropoff: "456 Oak Ave, Naperville, IL",
-    status: "in-transit",
-    amount: 52.50,
-  },
-];
-
-const mockDrivers = [
-  { id: "1", name: "Mike Johnson", status: "busy" },
-  { id: "2", name: "Sarah Williams", status: "available" },
-  { id: "3", name: "David Brown", status: "available" },
-  { id: "4", name: "Emily Davis", status: "offline" },
-];
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "ready":
-      return "bg-warning/10 text-warning border-warning/20";
-    case "in-transit":
-      return "bg-info/10 text-info border-info/20";
-    case "delivered":
-      return "bg-success/10 text-success border-success/20";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-};
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Package, Clock, User } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 const DispatcherOrders = () => {
-  const availableDrivers = mockDrivers.filter(d => d.status === "available");
+  const navigate = useNavigate();
+  const { orders, drivers, currentUser, assignDriver } = useApp();
+  const [loading, setLoading] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState("");
+
+  if (!currentUser) {
+    navigate("/sign-in");
+    return null;
+  }
+
+  const pendingOrders = orders.filter(o => o.status === 'pending');
+  const assignedOrders = orders.filter(o => ['assigned', 'picked-up', 'in-transit'].includes(o.status));
+  const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.status));
+  const availableDrivers = drivers.filter(d => d.status === 'available');
+
+  const handleOrderAction = async (action: string, order: Order) => {
+    if (action === "assign") {
+      setSelectedOrder(order);
+      setAssignDialogOpen(true);
+    } else if (action === "view") {
+      toast({
+        title: "Order Details",
+        description: `Viewing details for ${order.id}`,
+      });
+    }
+  };
+
+  const handleAssignDriver = async () => {
+    if (!selectedOrder || !selectedDriverId) return;
+
+    setLoading(true);
+    toast({
+      title: "Assigning driver...",
+      description: "Processing assignment",
+    });
+
+    try {
+      const response = await api.assignDriver({
+        orderId: selectedOrder.id,
+        driverId: selectedDriverId,
+      });
+
+      if (response.success) {
+        assignDriver(selectedOrder.id, selectedDriverId);
+        toast({
+          title: "Driver assigned successfully",
+          description: `Order ${selectedOrder.id} has been assigned`,
+        });
+        setAssignDialogOpen(false);
+        setSelectedOrder(null);
+        setSelectedDriverId("");
+      }
+    } catch (error) {
+      toast({
+        title: "Assignment failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -81,7 +97,7 @@ const DispatcherOrders = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Ready for Dispatch</p>
-                  <p className="text-3xl font-bold text-warning">{mockOrders.length}</p>
+                  <p className="text-3xl font-bold text-warning">{pendingOrders.length}</p>
                 </div>
                 <Package className="h-8 w-8 text-warning" />
               </div>
@@ -93,7 +109,7 @@ const DispatcherOrders = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">In Progress</p>
-                  <p className="text-3xl font-bold text-info">{mockAssignedOrders.length}</p>
+                  <p className="text-3xl font-bold text-info">{assignedOrders.length}</p>
                 </div>
                 <Clock className="h-8 w-8 text-info" />
               </div>
@@ -116,8 +132,8 @@ const DispatcherOrders = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Today's Deliveries</p>
-                  <p className="text-3xl font-bold">12</p>
+                  <p className="text-sm text-muted-foreground">Completed Today</p>
+                  <p className="text-3xl font-bold">{completedOrders.length}</p>
                 </div>
                 <Package className="h-8 w-8 text-primary" />
               </div>
@@ -128,138 +144,115 @@ const DispatcherOrders = () => {
         <Tabs defaultValue="pending" className="space-y-6">
           <TabsList>
             <TabsTrigger value="pending">
-              Ready for Dispatch ({mockOrders.length})
+              Ready for Dispatch ({pendingOrders.length})
             </TabsTrigger>
             <TabsTrigger value="assigned">
-              Assigned ({mockAssignedOrders.length})
+              Assigned ({assignedOrders.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed">
+              Completed ({completedOrders.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="space-y-4">
-            {mockOrders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg mb-2">Order #{order.id}</CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Customer: {order.customer}</span>
-                        <span>•</span>
-                        <span>Created: {order.createdAt}</span>
-                      </div>
-                    </div>
-                    <Badge className={getStatusColor(order.status)}>Ready for Dispatch</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex gap-3">
-                      <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Pickup</p>
-                        <p className="text-sm text-muted-foreground">{order.pickup}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <MapPin className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Dropoff</p>
-                        <p className="text-sm text-muted-foreground">{order.dropoff}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Distance</p>
-                        <p className="font-medium">{order.distance}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Amount</p>
-                        <p className="font-medium text-primary">${order.amount.toFixed(2)}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <Select>
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue placeholder="Select driver" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableDrivers.map((driver) => (
-                            <SelectItem key={driver.id} value={driver.id}>
-                              {driver.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button>Assign Driver</Button>
-                      <Button variant="outline" size="icon">
-                        <Map className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {pendingOrders.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No orders waiting for dispatch</p>
+              </div>
+            ) : (
+              pendingOrders.map((order) => (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  role="dispatcher"
+                  onAction={handleOrderAction}
+                />
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="assigned" className="space-y-4">
-            {mockAssignedOrders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg mb-2">Order #{order.id}</CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>Customer: {order.customer}</span>
-                        <span>•</span>
-                        <span>Driver: {order.driver}</span>
-                      </div>
-                    </div>
-                    <Badge className={getStatusColor(order.status)}>In Transit</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex gap-3">
-                      <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Pickup</p>
-                        <p className="text-sm text-muted-foreground">{order.pickup}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <MapPin className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Dropoff</p>
-                        <p className="text-sm text-muted-foreground">{order.dropoff}</p>
-                      </div>
-                    </div>
-                  </div>
+            {assignedOrders.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No orders in progress</p>
+              </div>
+            ) : (
+              assignedOrders.map((order) => (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  role="dispatcher"
+                  onAction={handleOrderAction}
+                />
+              ))
+            )}
+          </TabsContent>
 
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Amount</p>
-                        <p className="font-medium text-primary">${order.amount.toFixed(2)}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <Button variant="outline">View Details</Button>
-                      <Button variant="outline" size="icon">
-                        <Map className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <TabsContent value="completed" className="space-y-4">
+            {completedOrders.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No completed orders today</p>
+              </div>
+            ) : (
+              completedOrders.map((order) => (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  role="dispatcher"
+                  onAction={handleOrderAction}
+                />
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Assignment Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Driver</DialogTitle>
+            <DialogDescription>
+              Select an available driver for order {selectedOrder?.id}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a driver" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableDrivers.map((driver) => (
+                  <SelectItem key={driver.id} value={driver.id}>
+                    {driver.name} - {driver.vehicleType}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setAssignDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAssignDriver}
+                disabled={!selectedDriverId || loading}
+                className="flex-1"
+              >
+                {loading ? "Assigning..." : "Confirm Assignment"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

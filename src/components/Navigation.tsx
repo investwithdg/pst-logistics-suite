@@ -1,12 +1,23 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Package, User, LogOut } from "lucide-react";
+import { Package, User, LogOut, RefreshCw } from "lucide-react";
+import NotificationBell from "./NotificationBell";
+import { useApp } from "@/contexts/AppContext";
+import { formatDistanceToNow } from "date-fns";
 
 interface NavigationProps {
   userRole?: "customer" | "dispatcher" | "driver" | "admin" | null;
 }
 
 const Navigation = ({ userRole = null }: NavigationProps) => {
+  const { refreshData, lastUpdated, setCurrentUser } = useApp();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    navigate("/sign-in");
+  };
+
   return (
     <nav className="border-b bg-background">
       <div className="container mx-auto px-4">
@@ -51,18 +62,27 @@ const Navigation = ({ userRole = null }: NavigationProps) => {
                     <Link to="/admin/dashboard">
                       <Button variant="ghost">Dashboard</Button>
                     </Link>
-                    <Link to="/admin/pricing">
-                      <Button variant="ghost">Pricing</Button>
-                    </Link>
-                    <Link to="/admin/users">
-                      <Button variant="ghost">Users</Button>
-                    </Link>
                   </>
                 )}
+                
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={refreshData}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <NotificationBell />
+                
                 <Button variant="ghost" size="icon">
                   <User className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" onClick={handleLogout}>
                   <LogOut className="h-5 w-5" />
                 </Button>
               </>

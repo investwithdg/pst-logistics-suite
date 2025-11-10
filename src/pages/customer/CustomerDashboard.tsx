@@ -1,56 +1,49 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import OrderCard from "@/components/OrderCard";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { useApp } from "@/contexts/AppContext";
+import { Order } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, MapPin, Clock, Eye } from "lucide-react";
-
-const mockOrders = [
-  {
-    id: "DEL-2025-001",
-    pickup: "123 Main St, Chicago, IL",
-    dropoff: "456 Oak Ave, Naperville, IL",
-    status: "in-transit",
-    driver: "Mike Johnson",
-    estimatedDelivery: "2:30 PM",
-    amount: 52.50,
-  },
-  {
-    id: "DEL-2025-002",
-    pickup: "789 Elm St, Chicago, IL",
-    dropoff: "321 Pine Rd, Aurora, IL",
-    status: "pending",
-    driver: null,
-    estimatedDelivery: "4:00 PM",
-    amount: 67.25,
-  },
-  {
-    id: "DEL-2024-098",
-    pickup: "555 Market St, Chicago, IL",
-    dropoff: "888 Lake Dr, Evanston, IL",
-    status: "delivered",
-    driver: "Sarah Williams",
-    deliveredAt: "Dec 15, 2024",
-    amount: 45.00,
-  },
-];
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "pending":
-      return "bg-warning/10 text-warning border-warning/20";
-    case "in-transit":
-      return "bg-info/10 text-info border-info/20";
-    case "delivered":
-      return "bg-success/10 text-success border-success/20";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-};
+import { Package, Clock } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const CustomerDashboard = () => {
-  const activeOrders = mockOrders.filter(o => o.status !== "delivered");
-  const completedOrders = mockOrders.filter(o => o.status === "delivered");
+  const navigate = useNavigate();
+  const { orders, currentUser } = useApp();
+  const [loading, setLoading] = useState(false);
+
+  if (!currentUser) {
+    navigate("/sign-in");
+    return null;
+  }
+
+  const customerOrders = orders.filter(o => o.customerId === currentUser.id);
+  const activeOrders = customerOrders.filter(o => 
+    !['delivered', 'completed'].includes(o.status)
+  );
+  const completedOrders = customerOrders.filter(o => 
+    ['delivered', 'completed'].includes(o.status)
+  );
+
+  const handleOrderAction = async (action: string, order: Order) => {
+    setLoading(true);
+    
+    try {
+      if (action === "track") {
+        navigate(`/track?order=${order.id}`);
+      } else if (action === "pay") {
+        toast({
+          title: "Processing payment...",
+          description: "Redirecting to payment page",
+        });
+        setTimeout(() => navigate(`/quote?orderId=${order.id}`), 500);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -61,6 +54,8 @@ const CustomerDashboard = () => {
           <h1 className="text-3xl font-bold mb-2">My Deliveries</h1>
           <p className="text-muted-foreground">Track and manage all your delivery orders</p>
         </div>
+
+        {loading && <LoadingSpinner message="Loading order details..." />}
 
         <Tabs defaultValue="active" className="space-y-6">
           <TabsList>
@@ -75,108 +70,39 @@ const CustomerDashboard = () => {
           </TabsList>
 
           <TabsContent value="active" className="space-y-4">
-            {activeOrders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg mb-2">Order #{order.id}</CardTitle>
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status === "in-transit" ? "In Transit" : "Pending Assignment"}
-                      </Badge>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">${order.amount.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex gap-3">
-                      <MapPin className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Pickup</p>
-                        <p className="text-sm text-muted-foreground">{order.pickup}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <MapPin className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Dropoff</p>
-                        <p className="text-sm text-muted-foreground">{order.dropoff}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {order.driver && (
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium">Driver: {order.driver}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Estimated delivery: {order.estimatedDelivery}
-                          </p>
-                        </div>
-                        <Button>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Track Live
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {!order.driver && (
-                    <div className="bg-warning/5 border border-warning/20 rounded-lg p-4">
-                      <p className="text-sm text-warning">
-                        Waiting for driver assignment. You'll be notified once a driver accepts this delivery.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            {activeOrders.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No active orders</p>
+              </div>
+            ) : (
+              activeOrders.map((order) => (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  role="customer"
+                  onAction={handleOrderAction}
+                />
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-4">
-            {completedOrders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg mb-2">Order #{order.id}</CardTitle>
-                      <Badge className={getStatusColor(order.status)}>Delivered</Badge>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold">${order.amount.toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">{order.deliveredAt}</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex gap-3">
-                      <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Pickup</p>
-                        <p className="text-sm text-muted-foreground">{order.pickup}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Dropoff</p>
-                        <p className="text-sm text-muted-foreground">{order.dropoff}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button variant="outline" size="sm">View Receipt</Button>
-                    <Button variant="outline" size="sm">Rebook</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {completedOrders.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No completed orders</p>
+              </div>
+            ) : (
+              completedOrders.map((order) => (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  role="customer"
+                  onAction={handleOrderAction}
+                />
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>

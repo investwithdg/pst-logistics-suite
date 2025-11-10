@@ -6,17 +6,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useApp } from "@/contexts/AppContext";
+import { UserRole } from "@/types";
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const { setCurrentUser } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("customer");
+  const [role, setRole] = useState<UserRole>("customer");
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mock authentication - redirect based on role
+    // Mock authentication - set user and redirect based on role
+    const userMapping: Record<UserRole, { id: string; name: string }> = {
+      customer: { id: "C1", name: "John Smith" },
+      dispatcher: { id: "DISP1", name: "Sarah Admin" },
+      driver: { id: "D1", name: "Mike Johnson" },
+      admin: { id: "ADM1", name: "Admin User" },
+    };
+
+    const userData = userMapping[role];
+    setCurrentUser({ ...userData, role });
+    
+    // Navigate based on role
     switch (role) {
       case "customer":
         navigate("/customer/dashboard");
@@ -30,8 +44,6 @@ const SignIn = () => {
       case "admin":
         navigate("/admin/dashboard");
         break;
-      default:
-        navigate("/");
     }
   };
 
@@ -51,7 +63,7 @@ const SignIn = () => {
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="role">Sign in as</Label>
-                <Select value={role} onValueChange={setRole}>
+                <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
                   <SelectTrigger id="role">
                     <SelectValue />
                   </SelectTrigger>

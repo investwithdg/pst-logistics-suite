@@ -4,16 +4,35 @@ import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, Truck, Shield } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleGetQuote = () => {
-    if (pickup && dropoff) {
-      navigate("/quote", { state: { pickup, dropoff } });
+  const handleGetQuote = async () => {
+    if (!pickup || !dropoff) {
+      toast({
+        title: "Missing information",
+        description: "Please enter both pickup and dropoff locations",
+        variant: "destructive",
+      });
+      return;
     }
+
+    setLoading(true);
+    toast({
+      title: "Calculating route...",
+      description: "Please wait while we prepare your quote",
+    });
+
+    // Simulate API delay
+    setTimeout(() => {
+      navigate("/quote", { state: { pickup, dropoff } });
+      setLoading(false);
+    }, 500);
   };
 
   return (
@@ -60,8 +79,9 @@ const Index = () => {
                 className="w-full md:w-auto px-8"
                 size="lg"
                 onClick={handleGetQuote}
+                disabled={loading || !pickup || !dropoff}
               >
-                Get quote
+                {loading ? "Calculating..." : "Get quote"}
               </Button>
             </div>
 

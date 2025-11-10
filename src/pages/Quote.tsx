@@ -1,25 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, MapPin, TrendingUp, Package, Calculator } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { useApp } from "@/contexts/AppContext";
+import { api } from "@/lib/api";
+import { Order } from "@/types";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const Quote = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { addOrder, currentUser } = useApp();
+  
   const initialPickup = location.state?.pickup || "";
   const initialDropoff = location.state?.dropoff || "";
 
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: "",
+    fullName: currentUser?.name || "",
     email: "",
     phone: "",
     pickupAddress: initialPickup,
     dropoffAddress: initialDropoff,
     distance: "",
-    weight: "",
+    weight: "35",
+    packageDescription: "",
   });
 
   const [priceBreakdown, setPriceBreakdown] = useState<{
@@ -29,28 +38,119 @@ const Quote = () => {
     total: number;
   } | null>(null);
 
-  const calculatePrice = () => {
-    if (formData.distance && parseFloat(formData.distance) > 0) {
-      const baseRate = 25;
-      const distanceCharge = parseFloat(formData.distance) * 2.5;
-      const weightCharge = formData.weight ? parseFloat(formData.weight) * 0.5 : 0;
-      const total = baseRate + distanceCharge + weightCharge;
-
-      setPriceBreakdown({
-        baseRate,
-        distanceCharge,
-        weightCharge,
-        total,
+  const calculatePrice = async () => {
+    if (!formData.distance || parseFloat(formData.distance) <= 0) {
+      toast({
+        title: "Invalid distance",
+        description: "Please enter a valid distance",
+        variant: "destructive",
       });
+      return;
+    }
+
+    setLoading(true);
+    toast({
+      title: "Calculating price...",
+      description: "Please wait",
+    });
+
+    try {
+      const response = await api.calculateQuote({
+        distance: parseFloat(formData.distance),
+        packageWeight: parseFloat(formData.weight || "0"),
+      });
+
+      if (response.success && response.data) {
+        setPriceBreakdown({
+          baseRate: response.data.baseRate,
+          distanceCharge: response.data.mileageCharge,
+          weightCharge: response.data.surcharge,
+          total: response.data.totalPrice,
+        });
+        
+        toast({
+          title: "Price calculated",
+          description: `Total: $${response.data.totalPrice.toFixed(2)}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Calculation failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSubmit = () => {
-    calculatePrice();
-  };
+  const handlePayNow = async () => {
+    if (!priceBreakdown || !formData.fullName || !formData.email) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handlePayNow = () => {
-    navigate("/thank-you");
+    setLoading(true);
+    toast({
+      title: "Processing payment...",
+      description: "Please wait while we process your order",
+    });
+
+    try {
+      const response = await api.processPayment({
+        customerName: formData.fullName,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        pickupAddress: formData.pickupAddress,
+        dropoffAddress: formData.dropoffAddress,
+        distance: parseFloat(formData.distance),
+        packageWeight: parseFloat(formData.weight || "0"),
+        packageDescription: formData.packageDescription || "Package delivery",
+        amount: priceBreakdown.total,
+      });
+
+      if (response.success && response.data) {
+        // Create order
+        const newOrder: Order = {
+          id: response.data.orderId,
+          customerId: currentUser?.id || "C1",
+          customerName: formData.fullName,
+          customerPhone: formData.phone,
+          pickupAddress: formData.pickupAddress,
+          dropoffAddress: formData.dropoffAddress,
+          distance: parseFloat(formData.distance),
+          packageWeight: parseFloat(formData.weight || "0"),
+          packageDescription: formData.packageDescription || "Package delivery",
+          status: "pending",
+          createdAt: new Date().toISOString(),
+          baseRate: priceBreakdown.baseRate,
+          mileageCharge: priceBreakdown.distanceCharge,
+          surcharge: priceBreakdown.weightCharge,
+          totalPrice: priceBreakdown.total,
+        };
+
+        addOrder(newOrder);
+
+        toast({
+          title: "Order created successfully!",
+          description: `Order ${response.data.orderId} is pending assignment`,
+        });
+
+        navigate("/thank-you", { state: { orderId: response.data.orderId } });
+      }
+    } catch (error) {
+      toast({
+        title: "Payment failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,6 +165,8 @@ const Quote = () => {
           <h1 className="text-3xl font-bold mb-2">Get a Delivery Quote</h1>
           <p className="text-muted-foreground">Fill in your delivery details and get an instant price estimate</p>
         </div>
+
+        {loading && <LoadingSpinner message="Processing your request..." />}
 
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -107,7 +209,7 @@ const Quote = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Phone (Optional)
+                      Phone <span className="text-destructive">*</span>
                     </label>
                     <Input
                       type="tel"
@@ -178,7 +280,7 @@ const Quote = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Weight (lbs) (Optional)
+                      Weight (lbs) <span className="text-destructive">*</span>
                     </label>
                     <div className="relative">
                       <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -193,8 +295,24 @@ const Quote = () => {
                   </div>
                 </div>
 
-                <Button onClick={handleSubmit} className="w-full" size="lg">
-                  Calculate Price
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Package Description
+                  </label>
+                  <Input
+                    placeholder="e.g., Office supplies, Documents, etc."
+                    value={formData.packageDescription}
+                    onChange={(e) => setFormData({ ...formData, packageDescription: e.target.value })}
+                  />
+                </div>
+
+                <Button 
+                  onClick={calculatePrice} 
+                  className="w-full" 
+                  size="lg"
+                  disabled={loading || !formData.distance}
+                >
+                  {loading ? "Calculating..." : "Calculate Price"}
                 </Button>
               </CardContent>
             </Card>
@@ -214,7 +332,7 @@ const Quote = () => {
                   <div className="text-center py-12">
                     <Calculator className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">
-                      Fill in the delivery details to see pricing
+                      Fill in the delivery details and click "Calculate Price" to see pricing
                     </p>
                   </div>
                 ) : (
@@ -230,7 +348,7 @@ const Quote = () => {
                       </div>
                       {priceBreakdown.weightCharge > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Weight ({formData.weight} lbs)</span>
+                          <span className="text-muted-foreground">Surcharge</span>
                           <span className="font-medium">${priceBreakdown.weightCharge.toFixed(2)}</span>
                         </div>
                       )}
@@ -243,8 +361,13 @@ const Quote = () => {
                           ${priceBreakdown.total.toFixed(2)}
                         </span>
                       </div>
-                      <Button onClick={handlePayNow} className="w-full" size="lg">
-                        Pay Now
+                      <Button 
+                        onClick={handlePayNow} 
+                        className="w-full" 
+                        size="lg"
+                        disabled={loading}
+                      >
+                        {loading ? "Processing..." : "Pay Now"}
                       </Button>
                     </div>
                   </div>
