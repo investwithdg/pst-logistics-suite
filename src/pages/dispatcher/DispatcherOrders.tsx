@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navigation from "@/components/Navigation";
 import OrderCard from "@/components/OrderCard";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import { useApp } from "@/contexts/AppContext";
 import { Order } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,14 +80,11 @@ const DispatcherOrders = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <Navigation userRole="dispatcher" />
-      
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Order Queue</h1>
-          <p className="text-muted-foreground">Manage and assign delivery orders to drivers</p>
-        </div>
+    <DashboardLayout>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Order Queue</h1>
+        <p className="text-muted-foreground">Manage and assign delivery orders to drivers</p>
+      </div>
 
         {/* Stats */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
@@ -208,7 +204,6 @@ const DispatcherOrders = () => {
             )}
           </TabsContent>
         </Tabs>
-      </div>
 
       {/* Assignment Dialog */}
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
@@ -253,7 +248,7 @@ const DispatcherOrders = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardLayout>
   );
 };
 

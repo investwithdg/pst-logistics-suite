@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navigation from "@/components/Navigation";
 import OrderCard from "@/components/OrderCard";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import { useApp } from "@/contexts/AppContext";
 import { Order } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,16 +119,13 @@ const DriverJobs = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <Navigation userRole="driver" />
-      
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-1">My Jobs</h1>
-          <p className="text-sm text-muted-foreground">Manage your delivery assignments</p>
-        </div>
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-1">My Jobs</h1>
+        <p className="text-sm text-muted-foreground">Manage your delivery assignments</p>
+      </div>
 
-        {loading && <LoadingSpinner message="Processing..." />}
+      {loading && <LoadingSpinner message="Processing..." />}
 
         {/* Active Job */}
         {activeJob && (
@@ -180,7 +177,6 @@ const DriverJobs = () => {
             )}
           </TabsContent>
         </Tabs>
-      </div>
 
       {/* Proof of Delivery Dialog */}
       <Dialog open={showPOD} onOpenChange={setShowPOD}>
@@ -235,7 +231,7 @@ const DriverJobs = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardLayout>
   );
 };
 
