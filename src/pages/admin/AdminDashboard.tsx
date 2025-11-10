@@ -1,4 +1,5 @@
 import { useApp } from "@/contexts/AppContext";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,11 +33,12 @@ const mockUsers = [
 
 const AdminDashboard = () => {
   const { orders, drivers } = useApp();
+  const navigate = useNavigate();
 
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
         <p className="text-muted-foreground">Manage system settings, users, and pricing</p>
       </div>
 
@@ -104,16 +106,69 @@ const AdminDashboard = () => {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Chart</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-center justify-center bg-muted/50 rounded-lg">
-                <p className="text-muted-foreground">Chart placeholder - Revenue over time</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Revenue Chart</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 flex items-center justify-center bg-muted/50 rounded-lg">
+                    <p className="text-muted-foreground">Chart placeholder - Revenue over time</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Deliveries & Orders</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-32 flex items-center justify-center bg-muted/50 rounded-lg">
+                    <p className="text-muted-foreground">Recent activity placeholder</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button 
+                    className="w-full justify-between" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/company")}
+                  >
+                    <span>Add Vehicle</span>
+                  </Button>
+                  <Button 
+                    className="w-full justify-between" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/users")}
+                  >
+                    <span>Add Driver</span>
+                  </Button>
+                  <Button 
+                    className="w-full justify-between" 
+                    variant="outline"
+                    onClick={() => navigate("/dispatcher/drivers")}
+                  >
+                    <span>View Fleet</span>
+                  </Button>
+                  <Button 
+                    className="w-full justify-between" 
+                    variant="outline"
+                    onClick={() => navigate("/admin/system")}
+                  >
+                    <span>System Settings</span>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* Pricing Tab */}

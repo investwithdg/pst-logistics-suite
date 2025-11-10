@@ -53,6 +53,10 @@ const CustomerDashboard = () => {
     <DashboardLayout>
       {loading && <LoadingSpinner message="Loading order details..." />}
 
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+      </div>
+
       {/* Stats Overview */}
       <div className="grid md:grid-cols-4 gap-4">
         <Card className="border-border bg-card">
