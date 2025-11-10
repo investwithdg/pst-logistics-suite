@@ -4,74 +4,53 @@ import OrderCard from "@/components/OrderCard";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useApp } from "@/contexts/AppContext";
 import { Order } from "@/types";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Clock, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Package, Clock, User, Truck, TrendingUp, MapPin } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 
 const DispatcherOrders = () => {
   const navigate = useNavigate();
-  const { orders, drivers, currentUser, assignDriver } = useApp();
+  const { orders, drivers, assignDriver, updateOrderStatus } = useApp();
   const [loading, setLoading] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [selectedDriverId, setSelectedDriverId] = useState("");
-
-  if (!currentUser) {
-    navigate("/sign-in");
-    return null;
-  }
+  const [selectedDriverId, setSelectedDriverId] = useState<string>("");
 
   const pendingOrders = orders.filter(o => o.status === 'pending');
-  const assignedOrders = orders.filter(o => ['assigned', 'picked-up', 'in-transit'].includes(o.status));
-  const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.status));
+  const assignedOrders = orders.filter(o => o.status === 'assigned' || o.status === 'picked-up' || o.status === 'in-transit');
+  const completedOrders = orders.filter(o => o.status === 'delivered' || o.status === 'completed');
   const availableDrivers = drivers.filter(d => d.status === 'available');
 
-  const handleOrderAction = async (action: string, order: Order) => {
-    if (action === "assign") {
-      setSelectedOrder(order);
-      setAssignDialogOpen(true);
-    } else if (action === "view") {
-      toast({
-        title: "Order Details",
-        description: `Viewing details for ${order.id}`,
-      });
-    }
+  const handleAssignClick = (order: Order) => {
+    setSelectedOrder(order);
+    setAssignDialogOpen(true);
   };
 
   const handleAssignDriver = async () => {
     if (!selectedOrder || !selectedDriverId) return;
 
     setLoading(true);
-    toast({
-      title: "Assigning driver...",
-      description: "Processing assignment",
-    });
-
     try {
-      const response = await api.assignDriver({
-        orderId: selectedOrder.id,
-        driverId: selectedDriverId,
+      await api.assignDriver({ orderId: selectedOrder.id, driverId: selectedDriverId });
+      assignDriver(selectedOrder.id, selectedDriverId);
+      
+      toast({
+        title: "Driver Assigned",
+        description: `Order ${selectedOrder.id} assigned successfully`,
       });
-
-      if (response.success) {
-        assignDriver(selectedOrder.id, selectedDriverId);
-        toast({
-          title: "Driver assigned successfully",
-          description: `Order ${selectedOrder.id} has been assigned`,
-        });
-        setAssignDialogOpen(false);
-        setSelectedOrder(null);
-        setSelectedDriverId("");
-      }
+      
+      setAssignDialogOpen(false);
+      setSelectedOrder(null);
+      setSelectedDriverId("");
     } catch (error) {
       toast({
-        title: "Assignment failed",
-        description: "Please try again",
+        title: "Assignment Failed",
+        description: "Could not assign driver. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -79,131 +58,186 @@ const DispatcherOrders = () => {
     }
   };
 
+  const handleOrderAction = async (action: string, order: Order) => {
+    if (action === "assign") {
+      handleAssignClick(order);
+    } else if (action === "view") {
+      navigate(`/track?order=${order.id}`);
+    }
+  };
+
+  const completionRate = orders.length > 0 
+    ? Math.round((completedOrders.length / orders.length) * 100) 
+    : 0;
+
   return (
     <DashboardLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Order Queue</h1>
-        <p className="text-muted-foreground">Manage and assign delivery orders to drivers</p>
+      {/* Stats Overview */}
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Pending Orders</p>
+                <p className="text-3xl font-bold">{pendingOrders.length}</p>
+              </div>
+              <Package className="h-8 w-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">In Progress</p>
+                <p className="text-3xl font-bold">{assignedOrders.length}</p>
+              </div>
+              <Truck className="h-8 w-8 text-info" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Available Drivers</p>
+                <p className="text-3xl font-bold">{availableDrivers.length}</p>
+              </div>
+              <User className="h-8 w-8 text-success" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Completion Rate</p>
+                <p className="text-3xl font-bold">{completionRate}%</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-        {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Ready for Dispatch</p>
-                  <p className="text-3xl font-bold text-warning">{pendingOrders.length}</p>
-                </div>
-                <Package className="h-8 w-8 text-warning" />
-              </div>
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Order Queue */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Order Queue</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <MapPin className="h-4 w-4 mr-2" />
+                Map View
+              </Button>
+            </div>
+          </div>
+
+          {/* Pending Orders */}
+          {pendingOrders.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-warning flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Awaiting Assignment ({pendingOrders.length})
+              </h3>
+              {pendingOrders.map((order) => (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  role="dispatcher"
+                  onAction={handleOrderAction}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* In Progress Orders */}
+          {assignedOrders.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-info flex items-center gap-2">
+                <Truck className="h-4 w-4" />
+                In Progress ({assignedOrders.length})
+              </h3>
+              {assignedOrders.map((order) => (
+                <OrderCard 
+                  key={order.id} 
+                  order={order} 
+                  role="dispatcher"
+                  onAction={handleOrderAction}
+                />
+              ))}
+            </div>
+          )}
+
+          {pendingOrders.length === 0 && assignedOrders.length === 0 && (
+            <Card className="border-border bg-card">
+              <CardContent className="p-12 text-center">
+                <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">No orders in queue</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Driver List & Quick Actions */}
+        <div className="space-y-6">
+          {/* Available Drivers */}
+          <Card className="border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Available Drivers</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {availableDrivers.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No available drivers
+                </p>
+              ) : (
+                availableDrivers.slice(0, 8).map((driver) => (
+                  <div key={driver.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">{driver.name}</p>
+                      <p className="text-xs text-muted-foreground">{driver.vehicleType}</p>
+                    </div>
+                    <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                      Available
+                    </Badge>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">In Progress</p>
-                  <p className="text-3xl font-bold text-info">{assignedOrders.length}</p>
+
+          {/* Recent Completions */}
+          <Card className="border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Recent Completions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {completedOrders.slice(0, 5).map((order) => (
+                <div key={order.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{order.dropoffAddress.split(',')[0]}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                    Delivered
+                  </Badge>
                 </div>
-                <Clock className="h-8 w-8 text-info" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Available Drivers</p>
-                  <p className="text-3xl font-bold text-success">{availableDrivers.length}</p>
-                </div>
-                <User className="h-8 w-8 text-success" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Completed Today</p>
-                  <p className="text-3xl font-bold">{completedOrders.length}</p>
-                </div>
-                <Package className="h-8 w-8 text-primary" />
-              </div>
+              ))}
+              {completedOrders.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No completed orders yet
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
-
-        <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="pending">
-              Ready for Dispatch ({pendingOrders.length})
-            </TabsTrigger>
-            <TabsTrigger value="assigned">
-              Assigned ({assignedOrders.length})
-            </TabsTrigger>
-            <TabsTrigger value="completed">
-              Completed ({completedOrders.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="pending" className="space-y-4">
-            {pendingOrders.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No orders waiting for dispatch</p>
-              </div>
-            ) : (
-              pendingOrders.map((order) => (
-                <OrderCard 
-                  key={order.id} 
-                  order={order} 
-                  role="dispatcher"
-                  onAction={handleOrderAction}
-                />
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="assigned" className="space-y-4">
-            {assignedOrders.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No orders in progress</p>
-              </div>
-            ) : (
-              assignedOrders.map((order) => (
-                <OrderCard 
-                  key={order.id} 
-                  order={order} 
-                  role="dispatcher"
-                  onAction={handleOrderAction}
-                />
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="completed" className="space-y-4">
-            {completedOrders.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No completed orders today</p>
-              </div>
-            ) : (
-              completedOrders.map((order) => (
-                <OrderCard 
-                  key={order.id} 
-                  order={order} 
-                  role="dispatcher"
-                  onAction={handleOrderAction}
-                />
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
+      </div>
 
       {/* Assignment Dialog */}
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>

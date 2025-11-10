@@ -17,11 +17,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-muted/30">
+      <div className="flex min-h-screen w-full bg-background">
         <Sidebar />
         
         <div className="flex-1 flex flex-col">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+          <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background px-6">
             <SidebarTrigger />
             
             <div className="flex-1" />
@@ -34,7 +34,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 variant="ghost"
                 size="icon"
                 onClick={refreshData}
-                className="h-8 w-8"
+                className="h-9 w-9"
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
@@ -43,8 +43,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </header>
 
           <main className="flex-1 overflow-auto p-6">
-            <Breadcrumbs />
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-[1600px] mx-auto space-y-6">
               {children}
             </div>
           </main>

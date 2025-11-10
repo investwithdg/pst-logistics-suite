@@ -5,18 +5,18 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useApp } from "@/contexts/AppContext";
 import { Order } from "@/types";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle, Camera, FileSignature } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, Camera, FileSignature, Truck, Package, DollarSign, TrendingUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 
 const DriverJobs = () => {
   const navigate = useNavigate();
-  const { orders, currentUser, updateOrderStatus, updateOrder } = useApp();
+  const { currentUser, orders, updateOrderStatus } = useApp();
   const [loading, setLoading] = useState(false);
   const [showPOD, setShowPOD] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -28,89 +28,81 @@ const DriverJobs = () => {
   }
 
   const myJobs = orders.filter(o => o.driverId === currentUser.id);
-  const activeJob = myJobs.find(o => ['assigned', 'picked-up', 'in-transit'].includes(o.status));
-  const completedJobs = myJobs.filter(o => ['delivered', 'completed'].includes(o.status));
+  const activeJobs = myJobs.filter(o => 
+    o.status === 'assigned' || o.status === 'picked-up' || o.status === 'in-transit'
+  );
+  const completedJobs = myJobs.filter(o => 
+    o.status === 'delivered' || o.status === 'completed'
+  );
 
-  const handleOrderAction = async (action: string, order: Order) => {
+  const todayEarnings = activeJobs.reduce((sum, job) => sum + (job.totalPrice || 0), 0);
+  const totalEarnings = myJobs.reduce((sum, job) => sum + (job.totalPrice || 0), 0);
+
+  const handleMarkPickedUp = async (order: Order) => {
     setLoading(true);
-
     try {
-      if (action === "pickup") {
-        toast({
-          title: "Marking as picked up...",
-          description: "Updating order status",
-        });
-        
-        const response = await api.updatePickup({ orderId: order.id });
-        if (response.success) {
-          updateOrderStatus(order.id, "picked-up");
-          toast({
-            title: "Package picked up",
-            description: "Status updated successfully",
-          });
-        }
-      } else if (action === "transit") {
-        const response = await api.updateStatus({ orderId: order.id, status: "in-transit" });
-        if (response.success) {
-          updateOrderStatus(order.id, "in-transit");
-          toast({
-            title: "En route to destination",
-            description: "Status updated to in transit",
-          });
-        }
-      } else if (action === "deliver") {
-        setSelectedOrder(order);
-        setShowPOD(true);
-      }
+      await api.updateStatus({ orderId: order.id, status: 'picked-up' });
+      updateOrderStatus(order.id, 'picked-up');
+      toast({
+        title: "Order Picked Up",
+        description: `Order ${order.id} marked as picked up`,
+      });
     } catch (error) {
       toast({
-        title: "Update failed",
-        description: "Please try again",
+        title: "Update Failed",
+        description: "Could not update status. Please try again.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMarkInTransit = async (order: Order) => {
+    setLoading(true);
+    try {
+      await api.updateStatus({ orderId: order.id, status: 'in-transit' });
+      updateOrderStatus(order.id, 'in-transit');
+      toast({
+        title: "In Transit",
+        description: `Order ${order.id} is now in transit`,
+      });
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "Could not update status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeliverClick = (order: Order) => {
+    setSelectedOrder(order);
+    setShowPOD(true);
   };
 
   const handleSubmitPOD = async () => {
     if (!selectedOrder) return;
 
     setLoading(true);
-    toast({
-      title: "Submitting proof of delivery...",
-      description: "Processing delivery confirmation",
-    });
-
     try {
-      const response = await api.submitProof({
-        orderId: selectedOrder.id,
-        notes: podNotes,
-        timestamp: new Date().toISOString(),
+      await api.submitProof({ orderId: selectedOrder.id, notes: podNotes });
+      updateOrderStatus(selectedOrder.id, 'delivered');
+      
+      toast({
+        title: "Delivery Complete",
+        description: "Proof of delivery submitted successfully",
       });
-
-      if (response.success) {
-        updateOrder(selectedOrder.id, {
-          status: "delivered",
-          proofOfDelivery: {
-            notes: podNotes,
-            timestamp: new Date().toISOString(),
-          },
-        });
-        
-        toast({
-          title: "Delivery completed!",
-          description: `Order ${selectedOrder.id} marked as delivered`,
-        });
-        
-        setShowPOD(false);
-        setSelectedOrder(null);
-        setPodNotes("");
-      }
+      
+      setShowPOD(false);
+      setSelectedOrder(null);
+      setPodNotes("");
     } catch (error) {
       toast({
-        title: "Submission failed",
-        description: "Please try again",
+        title: "Submission Failed",
+        description: "Could not submit proof of delivery. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -118,65 +110,161 @@ const DriverJobs = () => {
     }
   };
 
+  const handleOrderAction = async (action: string, order: Order) => {
+    if (action === "pickup") {
+      await handleMarkPickedUp(order);
+    } else if (action === "transit") {
+      await handleMarkInTransit(order);
+    } else if (action === "deliver") {
+      handleDeliverClick(order);
+    } else if (action === "navigate") {
+      window.open(`https://maps.google.com/?q=${order.dropoffAddress}`, '_blank');
+    }
+  };
+
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">My Jobs</h1>
-        <p className="text-sm text-muted-foreground">Manage your delivery assignments</p>
-      </div>
-
       {loading && <LoadingSpinner message="Processing..." />}
 
-        {/* Active Job */}
-        {activeJob && (
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">Active Delivery</h2>
-            <OrderCard 
-              order={activeJob} 
-              role="driver"
-              onAction={handleOrderAction}
-            />
-          </div>
-        )}
-
-        {/* Available & Completed Jobs */}
-        <Tabs defaultValue="completed" className="space-y-4">
-          <TabsList className="w-full">
-            <TabsTrigger value="completed" className="flex-1">
-              Completed Today ({completedJobs.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="completed">
-            {completedJobs.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6 text-center py-12">
-                  <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-muted-foreground">No completed deliveries today</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {completedJobs.map((job) => (
-                  <OrderCard 
-                    key={job.id} 
-                    order={job} 
-                    role="driver"
-                  />
-                ))}
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />
-                    <p className="font-semibold mb-2">Great work today!</p>
-                    <p className="text-sm text-muted-foreground">
-                      Total earnings: ${completedJobs.reduce((sum, j) => sum + j.totalPrice, 0).toFixed(2)}
-                    </p>
-                  </CardContent>
-                </Card>
+      {/* Stats Overview */}
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Active Jobs</p>
+                <p className="text-3xl font-bold">{activeJobs.length}</p>
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+              <Truck className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Completed</p>
+                <p className="text-3xl font-bold">{completedJobs.length}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-success" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Today's Earnings</p>
+                <p className="text-3xl font-bold">${todayEarnings.toFixed(2)}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-success" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Total Earnings</p>
+                <p className="text-3xl font-bold">${totalEarnings.toFixed(2)}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-info" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Active Jobs */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Active Deliveries</h2>
+          </div>
+
+          {activeJobs.length === 0 ? (
+            <Card className="border-border bg-card">
+              <CardContent className="p-12 text-center">
+                <Truck className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground mb-4">No active jobs</p>
+                <Button onClick={() => navigate("/driver/available")}>
+                  View Available Jobs
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            activeJobs.map((order) => (
+              <OrderCard 
+                key={order.id} 
+                order={order} 
+                role="driver"
+                onAction={handleOrderAction}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Sidebar - Quick Stats & Recent */}
+        <div className="space-y-6">
+          {/* Today's Route */}
+          <Card className="border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Today's Route</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {activeJobs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No deliveries scheduled
+                </p>
+              ) : (
+                activeJobs.map((job, index) => (
+                  <div key={job.id} className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{job.dropoffAddress.split(',')[0]}</p>
+                      <p className="text-xs text-muted-foreground">{job.dropoffAddress}</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {job.status}
+                    </Badge>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Completions */}
+          <Card className="border-border bg-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Recent Completions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {completedJobs.slice(0, 5).map((job) => (
+                <div key={job.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{job.dropoffAddress.split(',')[0]}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(job.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-success">${job.totalPrice?.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+              {completedJobs.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No completed deliveries yet
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Proof of Delivery Dialog */}
       <Dialog open={showPOD} onOpenChange={setShowPOD}>
