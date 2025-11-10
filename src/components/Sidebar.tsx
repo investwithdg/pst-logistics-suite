@@ -214,7 +214,7 @@ export function Sidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4">
+      <SidebarFooter className="border-t border-border p-4 bg-slate-50">
         <DropdownMenu>
           <DropdownMenuTrigger className="w-full">
             <div className="flex items-center gap-3 hover:bg-muted/50 rounded-lg p-2 transition-colors">
