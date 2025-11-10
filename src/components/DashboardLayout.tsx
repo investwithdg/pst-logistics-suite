@@ -44,6 +44,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <main className="flex-1 overflow-auto p-6">
             <div className="max-w-[1600px] mx-auto space-y-6">
+              <Breadcrumbs />
               {children}
             </div>
           </main>

@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Quote from "./pages/Quote";
 import ThankYou from "./pages/ThankYou";
@@ -44,17 +45,22 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/quote" element={<Quote />} />
           <Route path="/thank-you" element={<ThankYou />} />
           <Route path="/track" element={<Track />} />
           <Route path="/sign-in" element={<SignIn />} />
+          
+          {/* top-level role aliases */}
+          <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
           <Route path="/customer/dashboard" element={<CustomerDashboard />} />
           <Route path="/customer/orders" element={<CustomerOrders />} />
           <Route path="/customer/invoices" element={<CustomerInvoices />} />
           <Route path="/customer/settings" element={<CustomerSettings />} />
           
+          <Route path="/dispatcher" element={<Navigate to="/dispatcher/dashboard" replace />} />
           <Route path="/dispatcher/dashboard" element={<DispatcherDashboard />} />
           <Route path="/dispatcher/orders" element={<DispatcherOrders />} />
           <Route path="/dispatcher/map" element={<DispatcherMap />} />
@@ -63,6 +69,7 @@ const App = () => (
           <Route path="/dispatcher/notifications" element={<DispatcherNotifications />} />
           <Route path="/dispatcher/settings" element={<DispatcherSettings />} />
           
+          <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
           <Route path="/driver/dashboard" element={<DriverDashboard />} />
           <Route path="/driver/jobs" element={<DriverJobs />} />
           <Route path="/driver/available" element={<DriverAvailable />} />
@@ -71,6 +78,7 @@ const App = () => (
           <Route path="/driver/profile" element={<DriverProfile />} />
           <Route path="/driver/settings" element={<DriverSettings />} />
           
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/pricing" element={<AdminPricing />} />
@@ -81,7 +89,8 @@ const App = () => (
           <Route path="/admin/settings" element={<AdminSettings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-        </Routes>
+          </Routes>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

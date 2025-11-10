@@ -1,73 +1,106 @@
-# Welcome to your Lovable project
+## Preferred Solutions Transport (PST) V2
 
-## Project info
+A modern React application built with Vite, TypeScript, Tailwind CSS, shadcn/ui, React Router, and TanStack Query.
 
-**URL**: https://lovable.dev/projects/18c69571-d8af-404c-8ad5-8516488912a2
+### Tech stack
+- **Build tool**: Vite 5 (React + SWC)
+- **Language**: TypeScript
+- **UI**: Tailwind CSS, shadcn/ui (Radix primitives)
+- **Routing**: React Router v6
+- **Data**: TanStack Query
 
-## How can I edit this code?
+### Requirements
+- Node.js 18+ (Vite 5 requires Node 18 or newer)
+- npm (recommended). pnpm or bun may work, but npm is the default for this repo.
 
-There are several ways of editing your application.
+### Quick start
 
-**Use Lovable**
+```bash
+# 1) Install dependencies
+npm install
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/18c69571-d8af-404c-8ad5-8516488912a2) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 2) Start the dev server (binds on all interfaces, port 8080)
 npm run dev
+# Open http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+### Available scripts
+- **dev**: Start Vite dev server on port 8080
+- **build**: Production build to `dist/`
+- **build:dev**: Build using development mode
+- **preview**: Preview the production build locally (default port 4173)
+- **lint**: Run ESLint on the project
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
 
-**Use GitHub Codespaces**
+### Project structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+src/
+  components/          # Reusable components and UI primitives (shadcn/ui)
+  contexts/            # React context providers
+  hooks/               # Custom React hooks
+  lib/                 # Utilities, API helpers (mocked)
+  pages/               # Route components grouped by area/role
+  main.tsx             # App entry, mounts to #root
+  App.tsx              # Router, providers, toasters
+```
 
-## What technologies are used for this project?
+- Tailwind config: `tailwind.config.ts`
+- Global styles: `src/index.css`
+- Vite config (port, aliases): `vite.config.ts`
+  - Dev server: `http://localhost:8080`
+  - Path alias: `@` → `./src`
+  - Additional shadcn aliases in `components.json`:
+    - `components` → `@/components`
+    - `ui` → `@/components/ui`
+    - `utils` → `@/lib/utils`
+    - `lib` → `@/lib`
+    - `hooks` → `@/hooks`
 
-This project is built with:
+### Routing
+Defined in `src/App.tsx` using React Router:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Public: `/`, `/quote`, `/thank-you`, `/track`, `/sign-in`
+- Customer: `/customer/dashboard`, `/customer/orders`, `/customer/invoices`, `/customer/settings`
+- Dispatcher: `/dispatcher/dashboard`, `/dispatcher/orders`, `/dispatcher/map`, `/dispatcher/drivers`, `/dispatcher/analytics`, `/dispatcher/notifications`, `/dispatcher/settings`
+- Driver: `/driver/dashboard`, `/driver/jobs`, `/driver/available`, `/driver/completed`, `/driver/earnings`, `/driver/profile`, `/driver/settings`
+- Admin: `/admin/dashboard`, `/admin/users`, `/admin/pricing`, `/admin/reports`, `/admin/company`, `/admin/system`, `/admin/audit`, `/admin/settings`
+- Fallback: `*` → NotFound
 
-## How can I deploy this project?
+### Data and API
+- Query client is provided app-wide via TanStack Query.
+- API calls are currently mocked in `src/lib/api.ts` (no external services or env variables required).
 
-Simply open [Lovable](https://lovable.dev/projects/18c69571-d8af-404c-8ad5-8516488912a2) and click on Share -> Publish.
+### Styling and UI
+- Tailwind CSS with a custom theme and CSS variables (see `tailwind.config.ts`).
+- shadcn/ui components live in `src/components/ui/*` and are built on Radix primitives.
 
-## Can I connect a custom domain to my Lovable project?
+### Build and deploy
 
-Yes, you can!
+```bash
+# Create an optimized production build in /dist
+npm run build
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# (optional) Preview the production build locally
+npm run preview
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+The output in `dist/` is a static site and can be hosted on any static host (e.g., Vercel, Netlify, GitHub Pages, S3/CloudFront, Nginx).
+
+### Linting
+
+```bash
+npm run lint
+```
+
+Configured via `eslint.config.js` with React and TypeScript rules.
+
+### Notes
+- The dev server binds to all interfaces (`host: "::"`) at port `8080`, so the app is accessible on your LAN at `http://<your-ip>:8080`.
+- No environment variables are required for local development; APIs are mocked.

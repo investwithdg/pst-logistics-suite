@@ -48,7 +48,7 @@ const MOCK_ORDERS: Order[] = [
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; role: UserRole } | null>(null);
   const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
-  const [drivers] = useState<Driver[]>(MOCK_DRIVERS);
+  const [drivers, setDrivers] = useState<Driver[]>(MOCK_DRIVERS);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
@@ -82,6 +82,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         driverName: driver.name,
         driverPhone: driver.phone,
       });
+      // Mark driver as busy when assigned
+      setDrivers(prev => prev.map(d => d.id === driverId ? { ...d, status: 'busy' } : d));
       
       // Add notifications
       const order = orders.find(o => o.id === orderId);
@@ -122,6 +124,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         read: false,
         type: status === 'delivered' ? 'success' : 'info',
       });
+
+      // When delivery completes, free the driver
+      if ((status === 'delivered' || status === 'completed') && order.driverId) {
+        setDrivers(prev => prev.map(d => d.id === order.driverId ? { ...d, status: 'available' } : d));
+      }
     }
   };
 

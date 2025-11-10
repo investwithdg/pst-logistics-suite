@@ -36,10 +36,10 @@ const SignIn = () => {
         navigate("/customer/dashboard");
         break;
       case "dispatcher":
-        navigate("/dispatcher/orders");
+        navigate("/dispatcher/dashboard");
         break;
       case "driver":
-        navigate("/driver/jobs");
+        navigate("/driver/dashboard");
         break;
       case "admin":
         navigate("/admin/dashboard");
