@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Package, CheckCircle, Truck, Clock } from "lucide-react";
 import { CustomerTrackingMap } from "@/components/CustomerTrackingMap";
+import { EtaDisplay } from "@/components/EtaDisplay";
 
 const Track = () => {
   const [orderNumber, setOrderNumber] = useState("");
   const [trackingData, setTrackingData] = useState<any>(null);
+  const [eta, setEta] = useState<{ minutes: number; formatted: string } | null>(null);
 
   const handleTrack = () => {
     // Mock tracking data
@@ -59,6 +61,9 @@ const Track = () => {
 
         {trackingData && (
           <div className="space-y-6">
+            {/* ETA Display */}
+            <EtaDisplay eta={eta} driverName={trackingData.driver} />
+
             {/* Live Map */}
             <Card>
               <CardHeader>
@@ -66,7 +71,7 @@ const Track = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-[400px] rounded-lg overflow-hidden">
-                  <CustomerTrackingMap orderId={trackingData.orderNumber} />
+                  <CustomerTrackingMap orderId={trackingData.orderNumber} onEtaUpdate={setEta} />
                 </div>
               </CardContent>
             </Card>

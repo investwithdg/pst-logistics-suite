@@ -3,5 +3,8 @@ project_id = "otxlvlxvodzqgwkbyknb"
 [functions.calculate-distance]
 verify_jwt = false
 
+[functions.calculate-eta]
+verify_jwt = false
+
 [functions.get-directions]
 verify_jwt = false

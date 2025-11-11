@@ -6,6 +6,7 @@ import { RoutePolyline } from './RoutePolyline';
 
 interface CustomerTrackingMapProps {
   orderId: string;
+  onEtaUpdate?: (eta: { minutes: number; formatted: string } | null) => void;
 }
 
 interface OrderLocation {
@@ -21,11 +22,12 @@ interface DriverLocation {
   current_location_lng: number | null;
 }
 
-export const CustomerTrackingMap = ({ orderId }: CustomerTrackingMapProps) => {
+export const CustomerTrackingMap = ({ orderId, onEtaUpdate }: CustomerTrackingMapProps) => {
   const [orderData, setOrderData] = useState<OrderLocation | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [center, setCenter] = useState({ lat: 41.8781, lng: -87.6298 });
   const [routePolyline, setRoutePolyline] = useState<string | null>(null);
+  const [eta, setEta] = useState<{ minutes: number; formatted: string } | null>(null);
 
   useEffect(() => {
     fetchOrderData();
@@ -48,10 +50,19 @@ export const CustomerTrackingMap = ({ orderId }: CustomerTrackingMapProps) => {
           filter: `id=eq.${orderData.driver_id}`,
         },
         (payload) => {
-          setDriverLocation({
+          const newLocation = {
             current_location_lat: payload.new.current_location_lat,
             current_location_lng: payload.new.current_location_lng,
-          });
+          };
+          setDriverLocation(newLocation);
+          
+          // Update ETA when driver location changes
+          if (newLocation.current_location_lat && newLocation.current_location_lng && orderData.dropoff_lat && orderData.dropoff_lng) {
+            updateEta(
+              `${newLocation.current_location_lat},${newLocation.current_location_lng}`,
+              `${orderData.dropoff_lat},${orderData.dropoff_lng}`
+            );
+          }
         }
       )
       .subscribe();
@@ -59,7 +70,7 @@ export const CustomerTrackingMap = ({ orderId }: CustomerTrackingMapProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [orderData?.driver_id]);
+  }, [orderData?.driver_id, orderData?.dropoff_lat, orderData?.dropoff_lng]);
 
   const fetchOrderData = async () => {
     const { data, error } = await supabase
@@ -106,6 +117,29 @@ export const CustomerTrackingMap = ({ orderId }: CustomerTrackingMapProps) => {
 
     if (!error && data) {
       setDriverLocation(data);
+      
+      // Calculate initial ETA
+      if (data.current_location_lat && data.current_location_lng && orderData.dropoff_lat && orderData.dropoff_lng) {
+        updateEta(
+          `${data.current_location_lat},${data.current_location_lng}`,
+          `${orderData.dropoff_lat},${orderData.dropoff_lng}`
+        );
+      }
+    }
+  };
+
+  const updateEta = async (driverLocation: string, destination: string) => {
+    const { data: etaData } = await supabase.functions.invoke('calculate-eta', {
+      body: { driverLocation, destination },
+    });
+
+    if (etaData?.success) {
+      const newEta = {
+        minutes: etaData.data.durationMinutes,
+        formatted: etaData.data.etaFormatted,
+      };
+      setEta(newEta);
+      onEtaUpdate?.(newEta);
     }
   };
 
