@@ -77,12 +77,36 @@ export const callWebhook = async <T = any>(
   }
 };
 
-// Helper to get webhook URL from configuration (placeholder for Phase 2)
+// Helper to get webhook URL from configuration
 async function getWebhookUrl(webhookName: string): Promise<string | null> {
-  // This will be implemented in Phase 2 to fetch from webhook_config table
-  // For now, return null which will trigger the "not configured" error
-  console.warn(`[Webhook Config] ${webhookName} URL not configured yet`);
-  return null;
+  try {
+    const { data, error } = await supabase
+      .from('webhook_config')
+      .select('webhook_url, is_active')
+      .eq('webhook_name', webhookName)
+      .eq('webhook_type', 'make-webhook')
+      .single();
+
+    if (error) {
+      console.error(`[Webhook Config] Error fetching ${webhookName}:`, error);
+      return null;
+    }
+
+    if (!data?.is_active) {
+      console.warn(`[Webhook Config] ${webhookName} is not active`);
+      return null;
+    }
+
+    if (!data?.webhook_url) {
+      console.warn(`[Webhook Config] ${webhookName} URL not configured`);
+      return null;
+    }
+
+    return data.webhook_url;
+  } catch (error) {
+    console.error(`[Webhook Config] Unexpected error for ${webhookName}:`, error);
+    return null;
+  }
 }
 
 // API helper functions - now routing to appropriate webhook type
