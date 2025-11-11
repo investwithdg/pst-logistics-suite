@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { supabase } from '@/integrations/supabase/client';
 import { Truck } from 'lucide-react';
+import { RoutePolyline } from './RoutePolyline';
 
 interface CustomerTrackingMapProps {
   orderId: string;
@@ -24,6 +25,7 @@ export const CustomerTrackingMap = ({ orderId }: CustomerTrackingMapProps) => {
   const [orderData, setOrderData] = useState<OrderLocation | null>(null);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [center, setCenter] = useState({ lat: 41.8781, lng: -87.6298 });
+  const [routePolyline, setRoutePolyline] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrderData();
@@ -76,6 +78,20 @@ export const CustomerTrackingMap = ({ orderId }: CustomerTrackingMapProps) => {
           lng: Number(data.pickup_lng),
         });
       }
+
+      // Fetch route between pickup and dropoff
+      if (data.pickup_lat && data.pickup_lng && data.dropoff_lat && data.dropoff_lng) {
+        const { data: routeData } = await supabase.functions.invoke('get-directions', {
+          body: {
+            origin: `${data.pickup_lat},${data.pickup_lng}`,
+            destination: `${data.dropoff_lat},${data.dropoff_lng}`,
+          },
+        });
+
+        if (routeData?.success) {
+          setRoutePolyline(routeData.data.polyline);
+        }
+      }
     }
   };
 
@@ -104,7 +120,7 @@ export const CustomerTrackingMap = ({ orderId }: CustomerTrackingMapProps) => {
   }
 
   return (
-    <APIProvider apiKey={apiKey}>
+    <APIProvider apiKey={apiKey} libraries={['geometry']}>
       <Map
         defaultCenter={center}
         defaultZoom={13}
@@ -112,6 +128,9 @@ export const CustomerTrackingMap = ({ orderId }: CustomerTrackingMapProps) => {
         style={{ width: '100%', height: '100%' }}
         gestureHandling="greedy"
       >
+        {/* Route polyline */}
+        {routePolyline && <RoutePolyline encodedPath={routePolyline} />}
+        
         {/* Pickup marker */}
         {orderData?.pickup_lat && orderData?.pickup_lng && (
           <AdvancedMarker

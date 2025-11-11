@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { supabase } from '@/integrations/supabase/client';
 import { Truck, MapPin } from 'lucide-react';
+import { RoutePolyline } from './RoutePolyline';
 
 interface Driver {
   id: string;
@@ -27,6 +28,7 @@ export const DriverTrackingMap = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [center, setCenter] = useState({ lat: 41.8781, lng: -87.6298 }); // Chicago default
+  const [routes, setRoutes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchDrivers();
@@ -90,6 +92,24 @@ export const DriverTrackingMap = () => {
 
     if (!error && data) {
       setOrders(data);
+
+      // Fetch routes for all active orders
+      const routeMap: Record<string, string> = {};
+      for (const order of data) {
+        if (order.pickup_lat && order.pickup_lng && order.dropoff_lat && order.dropoff_lng) {
+          const { data: routeData } = await supabase.functions.invoke('get-directions', {
+            body: {
+              origin: `${order.pickup_lat},${order.pickup_lng}`,
+              destination: `${order.dropoff_lat},${order.dropoff_lng}`,
+            },
+          });
+
+          if (routeData?.success) {
+            routeMap[order.id] = routeData.data.polyline;
+          }
+        }
+      }
+      setRoutes(routeMap);
     }
   };
 
@@ -104,7 +124,7 @@ export const DriverTrackingMap = () => {
   }
 
   return (
-    <APIProvider apiKey={apiKey}>
+    <APIProvider apiKey={apiKey} libraries={['geometry']}>
       <Map
         defaultCenter={center}
         defaultZoom={11}
@@ -112,6 +132,12 @@ export const DriverTrackingMap = () => {
         style={{ width: '100%', height: '100%' }}
         gestureHandling="greedy"
       >
+        {/* Routes for active orders */}
+        {orders.map((order) => {
+          const polyline = routes[order.id];
+          return polyline ? <RoutePolyline key={`route-${order.id}`} encodedPath={polyline} /> : null;
+        })}
+        
         {/* Driver markers */}
         {drivers.map((driver) => {
           if (!driver.current_location_lat || !driver.current_location_lng) return null;
