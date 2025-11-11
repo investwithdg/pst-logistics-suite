@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      driver_location_history: {
+        Row: {
+          created_at: string
+          driver_id: string
+          heading: number | null
+          id: string
+          latitude: number
+          longitude: number
+          order_id: string
+          recorded_at: string
+          speed: number | null
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          heading?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          order_id: string
+          recorded_at?: string
+          speed?: number | null
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          heading?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          order_id?: string
+          recorded_at?: string
+          speed?: number | null
+        }
+        Relationships: []
+      }
       drivers: {
         Row: {
           created_at: string

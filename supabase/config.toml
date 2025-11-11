@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.get-directions]
 verify_jwt = false
+
+[functions.get-route-history]
+verify_jwt = false

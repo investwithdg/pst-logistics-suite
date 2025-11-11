@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Quote from "./pages/Quote";
 import ThankYou from "./pages/ThankYou";
 import Track from "./pages/Track";
+import RouteReplay from "./pages/RouteReplay";
 import SignIn from "./pages/SignIn";
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import CustomerOrders from "./pages/customer/CustomerOrders";
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/quote" element={<Quote />} />
           <Route path="/thank-you" element={<ThankYou />} />
           <Route path="/track" element={<Track />} />
+          <Route path="/route-replay" element={<RouteReplay />} />
           <Route path="/sign-in" element={<SignIn />} />
           
           {/* top-level role aliases */}
