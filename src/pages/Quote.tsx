@@ -10,6 +10,8 @@ import { useApp } from "@/contexts/AppContext";
 import { api } from "@/lib/api";
 import { Order } from "@/types";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { supabase } from "@/integrations/supabase/client";
 
 const Quote = () => {
   const location = useLocation();
@@ -39,10 +41,10 @@ const Quote = () => {
   } | null>(null);
 
   const calculatePrice = async () => {
-    if (!formData.distance || parseFloat(formData.distance) <= 0) {
+    if (!formData.pickupAddress || !formData.dropoffAddress) {
       toast({
-        title: "Invalid distance",
-        description: "Please enter a valid distance",
+        title: "Missing addresses",
+        description: "Please enter both pickup and dropoff addresses",
         variant: "destructive",
       });
       return;
@@ -50,13 +52,32 @@ const Quote = () => {
 
     setLoading(true);
     toast({
-      title: "Calculating price...",
+      title: "Calculating distance and price...",
       description: "Please wait",
     });
 
     try {
+      // First, calculate accurate distance using Google Maps
+      const { data: distanceData, error: distanceError } = await supabase.functions.invoke(
+        'calculate-distance',
+        {
+          body: { 
+            origin: formData.pickupAddress, 
+            destination: formData.dropoffAddress 
+          }
+        }
+      );
+
+      if (distanceError) throw distanceError;
+
+      const accurateDistance = distanceData?.data?.distance || parseFloat(formData.distance) || 0;
+
+      // Update distance in form
+      setFormData(prev => ({ ...prev, distance: accurateDistance.toString() }));
+
+      // Then calculate price with accurate distance
       const response = await api.calculateQuote({
-        distance: parseFloat(formData.distance),
+        distance: accurateDistance,
         packageWeight: parseFloat(formData.weight || "0"),
       });
 
@@ -70,7 +91,7 @@ const Quote = () => {
         
         toast({
           title: "Price calculated",
-          description: `Total: $${response.data.totalPrice.toFixed(2)}`,
+          description: `Distance: ${accurateDistance.toFixed(1)} miles • Total: $${response.data.totalPrice.toFixed(2)}`,
         });
       }
     } catch (error) {
@@ -212,35 +233,21 @@ const Quote = () => {
                 <p className="text-sm text-muted-foreground">Enter pickup and dropoff locations</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Pickup Address <span className="text-destructive">*</span>
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Enter pickup address"
-                      value={formData.pickupAddress}
-                      onChange={(e) => setFormData({ ...formData, pickupAddress: e.target.value })}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+                <AddressAutocomplete
+                  label="Pickup Address"
+                  value={formData.pickupAddress}
+                  onChange={(value) => setFormData({ ...formData, pickupAddress: value })}
+                  placeholder="Enter pickup address"
+                  required
+                />
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Dropoff Address <span className="text-destructive">*</span>
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Enter dropoff address"
-                      value={formData.dropoffAddress}
-                      onChange={(e) => setFormData({ ...formData, dropoffAddress: e.target.value })}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+                <AddressAutocomplete
+                  label="Dropoff Address"
+                  value={formData.dropoffAddress}
+                  onChange={(value) => setFormData({ ...formData, dropoffAddress: value })}
+                  placeholder="Enter dropoff address"
+                  required
+                />
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
@@ -290,7 +297,7 @@ const Quote = () => {
                   onClick={calculatePrice} 
                   className="w-full" 
                   size="lg"
-                  disabled={loading || !formData.distance}
+                  disabled={loading || !formData.pickupAddress || !formData.dropoffAddress}
                 >
                   {loading ? "Calculating..." : "Calculate Price"}
                 </Button>

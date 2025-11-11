@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Package, CheckCircle, Truck, Clock } from "lucide-react";
+import { CustomerTrackingMap } from "@/components/CustomerTrackingMap";
 
 const Track = () => {
   const [orderNumber, setOrderNumber] = useState("");
@@ -58,6 +59,18 @@ const Track = () => {
 
         {trackingData && (
           <div className="space-y-6">
+            {/* Live Map */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Live Tracking</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px] rounded-lg overflow-hidden">
+                  <CustomerTrackingMap orderId={trackingData.orderNumber} />
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">

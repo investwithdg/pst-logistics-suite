@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Truck, ClipboardList } from "lucide-react";
+import { DriverTrackingMap } from "@/components/DriverTrackingMap";
 
 const DispatcherMap = () => {
   const navigate = useNavigate();
@@ -16,11 +17,11 @@ const DispatcherMap = () => {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Live Map</CardTitle>
+              <CardTitle>Live Driver Tracking</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-96 bg-muted/50 rounded-lg flex items-center justify-center">
-                <p className="text-muted-foreground">Map placeholder</p>
+              <div className="h-[600px] rounded-lg overflow-hidden">
+                <DriverTrackingMap />
               </div>
             </CardContent>
           </Card>
