@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       driver_location_history: {
         Row: {
           created_at: string
@@ -172,6 +196,7 @@ export type Database = {
           estimated_delivery: string | null
           id: string
           in_transit_at: string | null
+          invoice_approved_manually: boolean | null
           mileage_charge: number
           order_number: string
           package_description: string
@@ -182,6 +207,7 @@ export type Database = {
           pickup_lng: number | null
           special_instructions: string | null
           status: string
+          stripe_session_id: string | null
           surcharge: number | null
           total_price: number
         }
@@ -205,6 +231,7 @@ export type Database = {
           estimated_delivery?: string | null
           id?: string
           in_transit_at?: string | null
+          invoice_approved_manually?: boolean | null
           mileage_charge: number
           order_number?: string
           package_description: string
@@ -215,6 +242,7 @@ export type Database = {
           pickup_lng?: number | null
           special_instructions?: string | null
           status?: string
+          stripe_session_id?: string | null
           surcharge?: number | null
           total_price: number
         }
@@ -238,6 +266,7 @@ export type Database = {
           estimated_delivery?: string | null
           id?: string
           in_transit_at?: string | null
+          invoice_approved_manually?: boolean | null
           mileage_charge?: number
           order_number?: string
           package_description?: string
@@ -248,6 +277,7 @@ export type Database = {
           pickup_lng?: number | null
           special_instructions?: string | null
           status?: string
+          stripe_session_id?: string | null
           surcharge?: number | null
           total_price?: number
         }

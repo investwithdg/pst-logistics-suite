@@ -1,10 +1,14 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
 
 const ThankYou = () => {
+  const [searchParams] = useSearchParams();
+  const orderNumber = searchParams.get('order_number') || 'Processing...';
+  const sessionId = searchParams.get('session_id');
+
   return (
     <div className="min-h-screen bg-muted/30">
       <Navigation />
@@ -21,7 +25,7 @@ const ThankYou = () => {
               Your delivery has been scheduled successfully.
             </p>
             <p className="text-sm text-muted-foreground mb-8">
-              Order #<span className="font-mono font-medium">DEL-2025-001</span>
+              Order #<span className="font-mono font-medium">{orderNumber}</span>
             </p>
 
             <div className="bg-muted/50 rounded-lg p-6 mb-8 text-left">
