@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.get-route-history]
 verify_jwt = false
+
+[functions.cleanup-abandoned-orders]
+verify_jwt = false
