@@ -85,10 +85,10 @@ const Quote = () => {
   };
 
   const handlePayNow = async () => {
-    if (!priceBreakdown || !formData.fullName || !formData.email) {
+    if (!priceBreakdown || !formData.fullName || !formData.email || !formData.phone) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including phone number",
         variant: "destructive",
       });
       return;
@@ -96,8 +96,8 @@ const Quote = () => {
 
     setLoading(true);
     toast({
-      title: "Processing payment...",
-      description: "Please wait while we process your order",
+      title: "Redirecting to checkout...",
+      description: "Please wait while we prepare your payment",
     });
 
     try {
@@ -111,44 +111,24 @@ const Quote = () => {
         packageWeight: parseFloat(formData.weight || "0"),
         packageDescription: formData.packageDescription || "Package delivery",
         amount: priceBreakdown.total,
+        baseRate: priceBreakdown.baseRate,
+        mileageCharge: priceBreakdown.distanceCharge,
+        surcharge: priceBreakdown.weightCharge,
       });
 
-      if (response.success && response.data) {
-        // Create order
-        const newOrder: Order = {
-          id: response.data.orderId,
-          customerId: currentUser?.id || "C1",
-          customerName: formData.fullName,
-          customerPhone: formData.phone,
-          pickupAddress: formData.pickupAddress,
-          dropoffAddress: formData.dropoffAddress,
-          distance: parseFloat(formData.distance),
-          packageWeight: parseFloat(formData.weight || "0"),
-          packageDescription: formData.packageDescription || "Package delivery",
-          status: "pending",
-          createdAt: new Date().toISOString(),
-          baseRate: priceBreakdown.baseRate,
-          mileageCharge: priceBreakdown.distanceCharge,
-          surcharge: priceBreakdown.weightCharge,
-          totalPrice: priceBreakdown.total,
-        };
-
-        addOrder(newOrder);
-
-        toast({
-          title: "Order created successfully!",
-          description: `Order ${response.data.orderId} is pending assignment`,
-        });
-
-        navigate("/thank-you", { state: { orderId: response.data.orderId } });
+      if (response.success && response.data?.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.data.url;
+      } else {
+        throw new Error('Failed to create checkout session');
       }
     } catch (error) {
+      console.error('Payment error:', error);
       toast({
-        title: "Payment failed",
-        description: "Please try again",
+        title: "Payment setup failed",
+        description: "Please try again or contact support",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };

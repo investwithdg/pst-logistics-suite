@@ -134,7 +134,7 @@ export const api = {
 
   // Make.com Webhooks (Complex orchestration)
   processPayment: async (data: any): Promise<ApiResponse> => {
-    return callWebhook('process-payment', data, 'make-webhook');
+    return callWebhook('create-checkout-session', data, 'edge-function');
   },
 
   assignDriver: async (data: { orderId: string; driverId: string }): Promise<ApiResponse> => {
