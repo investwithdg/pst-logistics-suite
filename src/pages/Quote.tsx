@@ -23,14 +23,16 @@ const Quote = () => {
 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: currentUser?.name || "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     pickupAddress: initialPickup,
     dropoffAddress: initialDropoff,
     distance: "",
     weight: "35",
-    packageDescription: "",
+    deliverySize: "",
+    specialInstructions: "",
   });
 
   const [priceBreakdown, setPriceBreakdown] = useState<{
@@ -89,6 +91,22 @@ const Quote = () => {
           total: response.data.totalPrice,
         });
         
+        // Send to HubSpot webhook
+        await supabase.functions.invoke('sync-hubspot-quote', {
+          body: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            pickupAddress: formData.pickupAddress,
+            dropoffAddress: formData.dropoffAddress,
+            amount: response.data.totalPrice,
+            deliverySize: formData.deliverySize,
+            weight: parseFloat(formData.weight || "0"),
+            specialInstructions: formData.specialInstructions,
+            distance: accurateDistance,
+          }
+        });
+        
         toast({
           title: "Price calculated",
           description: `Distance: ${accurateDistance.toFixed(1)} miles • Total: $${response.data.totalPrice.toFixed(2)}`,
@@ -106,7 +124,7 @@ const Quote = () => {
   };
 
   const handlePayNow = async () => {
-    if (!priceBreakdown || !formData.fullName || !formData.email || !formData.phone) {
+    if (!priceBreakdown || !formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields including phone number",
@@ -123,14 +141,14 @@ const Quote = () => {
 
     try {
       const response = await api.processPayment({
-        customerName: formData.fullName,
+        customerName: `${formData.firstName} ${formData.lastName}`,
         customerEmail: formData.email,
         customerPhone: formData.phone,
         pickupAddress: formData.pickupAddress,
         dropoffAddress: formData.dropoffAddress,
         distance: parseFloat(formData.distance),
         packageWeight: parseFloat(formData.weight || "0"),
-        packageDescription: formData.packageDescription || "Package delivery",
+        packageDescription: formData.specialInstructions || "Package delivery",
         amount: priceBreakdown.total,
         baseRate: priceBreakdown.baseRate,
         mileageCharge: priceBreakdown.distanceCharge,
@@ -181,17 +199,25 @@ const Quote = () => {
                 <p className="text-sm text-muted-foreground">Provide your contact details for order updates</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Full Name <span className="text-destructive">*</span>
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      First Name <span className="text-destructive">*</span>
+                    </label>
                     <Input
-                      placeholder="John Doe"
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="pl-10"
+                      placeholder="John"
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Last Name <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      placeholder="Doe"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     />
                   </div>
                 </div>
@@ -284,12 +310,23 @@ const Quote = () => {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    Package Description
+                    Delivery Size <span className="text-destructive">*</span>
                   </label>
                   <Input
-                    placeholder="e.g., Office supplies, Documents, etc."
-                    value={formData.packageDescription}
-                    onChange={(e) => setFormData({ ...formData, packageDescription: e.target.value })}
+                    placeholder="e.g., Small, Medium, Large"
+                    value={formData.deliverySize}
+                    onChange={(e) => setFormData({ ...formData, deliverySize: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Special Delivery Instructions
+                  </label>
+                  <Input
+                    placeholder="e.g., Fragile, handle with care"
+                    value={formData.specialInstructions}
+                    onChange={(e) => setFormData({ ...formData, specialInstructions: e.target.value })}
                   />
                 </div>
 
