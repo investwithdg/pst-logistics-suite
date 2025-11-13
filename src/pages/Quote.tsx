@@ -155,10 +155,14 @@ const Quote = () => {
         surcharge: priceBreakdown.weightCharge,
       });
 
+      console.log('Payment response:', response);
+
       if (response.success && response.data?.url) {
+        console.log('Redirecting to:', response.data.url);
         // Redirect to Stripe Checkout
         window.location.href = response.data.url;
       } else {
+        console.error('No URL found in response:', response);
         throw new Error('Failed to create checkout session');
       }
     } catch (error) {
