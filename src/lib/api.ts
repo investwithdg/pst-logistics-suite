@@ -8,6 +8,9 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   retryable?: boolean;
+  url?: string;
+  sessionId?: string;
+  orderNumber?: string;
 }
 
 type WebhookType = 'edge-function' | 'make-webhook';

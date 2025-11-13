@@ -157,10 +157,10 @@ const Quote = () => {
 
       console.log('Payment response:', response);
 
-      if (response.success && response.data?.url) {
-        console.log('Redirecting to:', response.data.url);
+      if (response.success && response.url) {
+        console.log('Redirecting to:', response.url);
         // Redirect to Stripe Checkout
-        window.location.href = response.data.url;
+        window.location.href = response.url;
       } else {
         console.error('No URL found in response:', response);
         throw new Error('Failed to create checkout session');
