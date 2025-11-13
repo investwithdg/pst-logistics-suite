@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Quote from "./pages/Quote";
 import ThankYou from "./pages/ThankYou";
@@ -46,7 +48,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <ErrorBoundary>
+        <AuthProvider>
+          <ErrorBoundary>
           <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/quote" element={<Quote />} />
@@ -55,44 +58,48 @@ const App = () => (
           <Route path="/route-replay" element={<RouteReplay />} />
           <Route path="/sign-in" element={<SignIn />} />
           
-          {/* top-level role aliases */}
+          {/* Customer routes */}
           <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
-          <Route path="/customer/dashboard" element={<CustomerDashboard />} />
-          <Route path="/customer/orders" element={<CustomerOrders />} />
-          <Route path="/customer/invoices" element={<CustomerInvoices />} />
-          <Route path="/customer/settings" element={<CustomerSettings />} />
+          <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer']}><CustomerDashboard /></ProtectedRoute>} />
+          <Route path="/customer/orders" element={<ProtectedRoute allowedRoles={['customer']}><CustomerOrders /></ProtectedRoute>} />
+          <Route path="/customer/invoices" element={<ProtectedRoute allowedRoles={['customer']}><CustomerInvoices /></ProtectedRoute>} />
+          <Route path="/customer/settings" element={<ProtectedRoute allowedRoles={['customer']}><CustomerSettings /></ProtectedRoute>} />
           
+          {/* Dispatcher routes */}
           <Route path="/dispatcher" element={<Navigate to="/dispatcher/dashboard" replace />} />
-          <Route path="/dispatcher/dashboard" element={<DispatcherDashboard />} />
-          <Route path="/dispatcher/orders" element={<DispatcherOrders />} />
-          <Route path="/dispatcher/map" element={<DispatcherMap />} />
-          <Route path="/dispatcher/drivers" element={<DispatcherDrivers />} />
-          <Route path="/dispatcher/analytics" element={<DispatcherAnalytics />} />
-          <Route path="/dispatcher/notifications" element={<DispatcherNotifications />} />
-          <Route path="/dispatcher/settings" element={<DispatcherSettings />} />
+          <Route path="/dispatcher/dashboard" element={<ProtectedRoute allowedRoles={['dispatcher', 'admin']}><DispatcherDashboard /></ProtectedRoute>} />
+          <Route path="/dispatcher/orders" element={<ProtectedRoute allowedRoles={['dispatcher', 'admin']}><DispatcherOrders /></ProtectedRoute>} />
+          <Route path="/dispatcher/map" element={<ProtectedRoute allowedRoles={['dispatcher', 'admin']}><DispatcherMap /></ProtectedRoute>} />
+          <Route path="/dispatcher/drivers" element={<ProtectedRoute allowedRoles={['dispatcher', 'admin']}><DispatcherDrivers /></ProtectedRoute>} />
+          <Route path="/dispatcher/analytics" element={<ProtectedRoute allowedRoles={['dispatcher', 'admin']}><DispatcherAnalytics /></ProtectedRoute>} />
+          <Route path="/dispatcher/notifications" element={<ProtectedRoute allowedRoles={['dispatcher', 'admin']}><DispatcherNotifications /></ProtectedRoute>} />
+          <Route path="/dispatcher/settings" element={<ProtectedRoute allowedRoles={['dispatcher', 'admin']}><DispatcherSettings /></ProtectedRoute>} />
           
+          {/* Driver routes */}
           <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
-          <Route path="/driver/dashboard" element={<DriverDashboard />} />
-          <Route path="/driver/jobs" element={<DriverJobs />} />
-          <Route path="/driver/available" element={<DriverAvailable />} />
-          <Route path="/driver/completed" element={<DriverCompleted />} />
-          <Route path="/driver/earnings" element={<DriverEarnings />} />
-          <Route path="/driver/profile" element={<DriverProfile />} />
-          <Route path="/driver/settings" element={<DriverSettings />} />
+          <Route path="/driver/dashboard" element={<ProtectedRoute allowedRoles={['driver']}><DriverDashboard /></ProtectedRoute>} />
+          <Route path="/driver/jobs" element={<ProtectedRoute allowedRoles={['driver']}><DriverJobs /></ProtectedRoute>} />
+          <Route path="/driver/available" element={<ProtectedRoute allowedRoles={['driver']}><DriverAvailable /></ProtectedRoute>} />
+          <Route path="/driver/completed" element={<ProtectedRoute allowedRoles={['driver']}><DriverCompleted /></ProtectedRoute>} />
+          <Route path="/driver/earnings" element={<ProtectedRoute allowedRoles={['driver']}><DriverEarnings /></ProtectedRoute>} />
+          <Route path="/driver/profile" element={<ProtectedRoute allowedRoles={['driver']}><DriverProfile /></ProtectedRoute>} />
+          <Route path="/driver/settings" element={<ProtectedRoute allowedRoles={['driver']}><DriverSettings /></ProtectedRoute>} />
           
+          {/* Admin routes */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/pricing" element={<AdminPricing />} />
-          <Route path="/admin/reports" element={<AdminReports />} />
-          <Route path="/admin/company" element={<AdminCompany />} />
-          <Route path="/admin/system" element={<AdminSystem />} />
-          <Route path="/admin/audit" element={<AdminAudit />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
+          <Route path="/admin/pricing" element={<ProtectedRoute allowedRoles={['admin']}><AdminPricing /></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>} />
+          <Route path="/admin/company" element={<ProtectedRoute allowedRoles={['admin']}><AdminCompany /></ProtectedRoute>} />
+          <Route path="/admin/system" element={<ProtectedRoute allowedRoles={['admin']}><AdminSystem /></ProtectedRoute>} />
+          <Route path="/admin/audit" element={<ProtectedRoute allowedRoles={['admin']}><AdminAudit /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           </Routes>
-        </ErrorBoundary>
+          </ErrorBoundary>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
