@@ -133,7 +133,6 @@ const Quote = () => {
       return;
     }
 
-    setLoading(true);
     toast({
       title: "Redirecting to checkout...",
       description: "Please wait while we prepare your payment",
@@ -155,14 +154,10 @@ const Quote = () => {
         surcharge: priceBreakdown.weightCharge,
       });
 
-      console.log('Payment response:', response);
-
       if (response.success && response.url) {
-        console.log('Redirecting to:', response.url);
-        // Redirect to Stripe Checkout
+        // Redirect to Stripe Checkout - page will navigate away
         window.location.href = response.url;
       } else {
-        console.error('No URL found in response:', response);
         throw new Error('Failed to create checkout session');
       }
     } catch (error) {
@@ -172,7 +167,6 @@ const Quote = () => {
         description: "Please try again or contact support",
         variant: "destructive",
       });
-      setLoading(false);
     }
   };
 
