@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Order, Driver, Notification, UserRole, OrderStatus } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from './AuthContext';
 
 interface AppContextType {
   currentUser: { id: string; name: string; role: UserRole } | null;
@@ -23,12 +24,46 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, userRole } = useAuth();
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; role: UserRole } | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  // Set current user based on auth user and role
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      if (!user || !userRole) {
+        setCurrentUser(null);
+        return;
+      }
+
+      // For drivers, fetch their name from the drivers table
+      if (userRole === 'driver') {
+        const { data: driverData } = await supabase
+          .from('drivers')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+
+        setCurrentUser({
+          id: user.id,
+          name: driverData?.name || user.email || 'Driver',
+          role: userRole as UserRole,
+        });
+      } else {
+        setCurrentUser({
+          id: user.id,
+          name: user.email || 'User',
+          role: userRole as UserRole,
+        });
+      }
+    };
+
+    loadCurrentUser();
+  }, [user, userRole]);
 
   // Fetch orders from Supabase
   const fetchOrders = async () => {
