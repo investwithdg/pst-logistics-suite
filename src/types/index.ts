@@ -29,6 +29,7 @@ export interface Order {
   customerId: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   pickupAddress: string;
   dropoffAddress: string;
   distance: number;
@@ -44,6 +45,33 @@ export interface Order {
   mileageCharge: number;
   surcharge: number;
   totalPrice: number;
+  specialInstructions?: string;
+  
+  // Customer-facing fields
+  scheduledPickupTime?: string;
+  scheduledDeliveryTime?: string;
+  deliveryType?: string;
+  vehicleTypeRequired?: string;
+  rushRequested?: boolean;
+  numberOfStops?: number;
+  
+  // Driver-facing fields
+  deliveryExceptionType?: string;
+  deliveryExceptionNotes?: string;
+  driverFeedback?: string;
+  driverContactedCustomer?: boolean;
+  
+  // Admin/Dispatcher fields
+  dealPipelineStage?: string;
+  deliveryResolutionStatus?: string;
+  quoteStatus?: string;
+  paymentStatus?: string;
+  pricingMode?: string;
+  quoteSent?: boolean;
+  invoiceSent?: boolean;
+  deliveryRoute?: any;
+  recurringFrequency?: string;
+  
   proofOfDelivery?: {
     photo?: string;
     signature?: string;

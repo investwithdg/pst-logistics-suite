@@ -229,8 +229,16 @@ export type Database = {
           customer_id: string | null
           customer_name: string
           customer_phone: string | null
+          deal_pipeline_stage: string | null
           delivered_at: string | null
+          delivery_exception_notes: string | null
+          delivery_exception_type: string | null
+          delivery_resolution_status: string | null
+          delivery_route: Json | null
+          delivery_type: string | null
           distance: number
+          driver_contacted_customer: boolean | null
+          driver_feedback: string | null
           driver_id: string | null
           driver_name: string | null
           driver_phone: string | null
@@ -243,19 +251,30 @@ export type Database = {
           id: string
           in_transit_at: string | null
           invoice_approved_manually: boolean | null
+          invoice_sent: boolean | null
           mileage_charge: number
+          number_of_stops: number | null
           order_number: string
           package_description: string
           package_weight: number
+          payment_status: string | null
           picked_up_at: string | null
           pickup_address: string
           pickup_lat: number | null
           pickup_lng: number | null
+          pricing_mode: string | null
+          quote_sent: boolean | null
+          quote_status: string | null
+          recurring_frequency: string | null
+          rush_requested: boolean | null
+          scheduled_delivery_time: string | null
+          scheduled_pickup_time: string | null
           special_instructions: string | null
           status: string
           stripe_session_id: string | null
           surcharge: number | null
           total_price: number
+          vehicle_type_required: string | null
         }
         Insert: {
           assigned_at?: string | null
@@ -266,8 +285,16 @@ export type Database = {
           customer_id?: string | null
           customer_name: string
           customer_phone?: string | null
+          deal_pipeline_stage?: string | null
           delivered_at?: string | null
+          delivery_exception_notes?: string | null
+          delivery_exception_type?: string | null
+          delivery_resolution_status?: string | null
+          delivery_route?: Json | null
+          delivery_type?: string | null
           distance: number
+          driver_contacted_customer?: boolean | null
+          driver_feedback?: string | null
           driver_id?: string | null
           driver_name?: string | null
           driver_phone?: string | null
@@ -280,19 +307,30 @@ export type Database = {
           id?: string
           in_transit_at?: string | null
           invoice_approved_manually?: boolean | null
+          invoice_sent?: boolean | null
           mileage_charge: number
+          number_of_stops?: number | null
           order_number?: string
           package_description: string
           package_weight: number
+          payment_status?: string | null
           picked_up_at?: string | null
           pickup_address: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pricing_mode?: string | null
+          quote_sent?: boolean | null
+          quote_status?: string | null
+          recurring_frequency?: string | null
+          rush_requested?: boolean | null
+          scheduled_delivery_time?: string | null
+          scheduled_pickup_time?: string | null
           special_instructions?: string | null
           status?: string
           stripe_session_id?: string | null
           surcharge?: number | null
           total_price: number
+          vehicle_type_required?: string | null
         }
         Update: {
           assigned_at?: string | null
@@ -303,8 +341,16 @@ export type Database = {
           customer_id?: string | null
           customer_name?: string
           customer_phone?: string | null
+          deal_pipeline_stage?: string | null
           delivered_at?: string | null
+          delivery_exception_notes?: string | null
+          delivery_exception_type?: string | null
+          delivery_resolution_status?: string | null
+          delivery_route?: Json | null
+          delivery_type?: string | null
           distance?: number
+          driver_contacted_customer?: boolean | null
+          driver_feedback?: string | null
           driver_id?: string | null
           driver_name?: string | null
           driver_phone?: string | null
@@ -317,19 +363,30 @@ export type Database = {
           id?: string
           in_transit_at?: string | null
           invoice_approved_manually?: boolean | null
+          invoice_sent?: boolean | null
           mileage_charge?: number
+          number_of_stops?: number | null
           order_number?: string
           package_description?: string
           package_weight?: number
+          payment_status?: string | null
           picked_up_at?: string | null
           pickup_address?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pricing_mode?: string | null
+          quote_sent?: boolean | null
+          quote_status?: string | null
+          recurring_frequency?: string | null
+          rush_requested?: boolean | null
+          scheduled_delivery_time?: string | null
+          scheduled_pickup_time?: string | null
           special_instructions?: string | null
           status?: string
           stripe_session_id?: string | null
           surcharge?: number | null
           total_price?: number
+          vehicle_type_required?: string | null
         }
         Relationships: []
       }
