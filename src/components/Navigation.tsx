@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Package, User, LogOut, RefreshCw } from "lucide-react";
+import { Package, RefreshCw } from "lucide-react";
 import NotificationBell from "./NotificationBell";
+import { UserProfileMenu } from "@/components/UserProfileMenu";
 import { useApp } from "@/contexts/AppContext";
 import { formatDistanceToNow } from "date-fns";
 
@@ -10,13 +11,7 @@ interface NavigationProps {
 }
 
 const Navigation = ({ userRole = null }: NavigationProps) => {
-  const { refreshData, lastUpdated, setCurrentUser } = useApp();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    navigate("/sign-in");
-  };
+  const { refreshData, lastUpdated } = useApp();
 
   return (
     <nav className="border-b bg-background">
@@ -79,12 +74,7 @@ const Navigation = ({ userRole = null }: NavigationProps) => {
 
                 <NotificationBell />
                 
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={handleLogout}>
-                  <LogOut className="h-5 w-5" />
-                </Button>
+                <UserProfileMenu />
               </>
             )}
           </div>

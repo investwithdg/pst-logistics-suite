@@ -124,7 +124,7 @@ const DriverDashboard = () => {
                 variant="outline"
                 onClick={() => navigate("/driver/available")}
               >
-                <span>View Available Jobs</span>
+                <span>View Job Board</span>
                 <ClipboardList className="h-4 w-4" />
               </Button>
               <Button
@@ -138,10 +138,18 @@ const DriverDashboard = () => {
               <Button
                 className="w-full justify-between"
                 variant="outline"
+                disabled={activeJobs.length === 0}
                 onClick={() => {
-                  const first = activeJobs[0];
-                  if (first) {
-                    window.open(`https://maps.google.com/?q=${first.dropoffAddress}`, "_blank");
+                  const nextJob = activeJobs.sort((a, b) => 
+                    new Date(a.assignedAt || 0).getTime() - new Date(b.assignedAt || 0).getTime()
+                  )[0];
+                  
+                  if (nextJob) {
+                    const destination = nextJob.status === 'assigned' 
+                      ? `${nextJob.pickupLat},${nextJob.pickupLng}`
+                      : `${nextJob.dropoffLat},${nextJob.dropoffLng}`;
+                    
+                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}`, '_blank');
                   }
                 }}
               >
