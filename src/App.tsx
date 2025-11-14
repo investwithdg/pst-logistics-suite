@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppProvider } from "@/contexts/AppContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Quote from "./pages/Quote";
@@ -51,7 +52,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <ErrorBoundary>
+          <AppProvider>
+            <ErrorBoundary>
           <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/quote" element={<Quote />} />
@@ -103,6 +105,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
           </Routes>
           </ErrorBoundary>
+          </AppProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
