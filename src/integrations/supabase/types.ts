@@ -131,6 +131,50 @@ export type Database = {
         }
         Relationships: []
       }
+      hubspot_sync_status: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          hubspot_deal_id: string | null
+          id: string
+          last_attempt_at: string | null
+          order_id: string | null
+          retry_count: number | null
+          sync_status: string
+          sync_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          hubspot_deal_id?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          order_id?: string | null
+          retry_count?: number | null
+          sync_status: string
+          sync_type: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          hubspot_deal_id?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          order_id?: string | null
+          retry_count?: number | null
+          sync_status?: string
+          sync_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hubspot_sync_status_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -194,6 +238,8 @@ export type Database = {
           dropoff_lat: number | null
           dropoff_lng: number | null
           estimated_delivery: string | null
+          hubspot_deal_id: string | null
+          hubspot_properties: Json | null
           id: string
           in_transit_at: string | null
           invoice_approved_manually: boolean | null
@@ -229,6 +275,8 @@ export type Database = {
           dropoff_lat?: number | null
           dropoff_lng?: number | null
           estimated_delivery?: string | null
+          hubspot_deal_id?: string | null
+          hubspot_properties?: Json | null
           id?: string
           in_transit_at?: string | null
           invoice_approved_manually?: boolean | null
@@ -264,6 +312,8 @@ export type Database = {
           dropoff_lat?: number | null
           dropoff_lng?: number | null
           estimated_delivery?: string | null
+          hubspot_deal_id?: string | null
+          hubspot_properties?: Json | null
           id?: string
           in_transit_at?: string | null
           invoice_approved_manually?: boolean | null
@@ -280,6 +330,30 @@ export type Database = {
           stripe_session_id?: string | null
           surcharge?: number | null
           total_price?: number
+        }
+        Relationships: []
+      }
+      pricing_audit: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
         }
         Relationships: []
       }
@@ -420,6 +494,39 @@ export type Database = {
           webhook_name?: string
           webhook_type?: string
           webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      webhook_logs: {
+        Row: {
+          created_at: string | null
+          direction: string
+          error_message: string | null
+          id: string
+          payload: Json | null
+          response: Json | null
+          status: string
+          webhook_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          direction: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          response?: Json | null
+          status: string
+          webhook_name: string
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          response?: Json | null
+          status?: string
+          webhook_name?: string
         }
         Relationships: []
       }
