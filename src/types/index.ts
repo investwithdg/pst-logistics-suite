@@ -32,12 +32,17 @@ export interface Order {
   customerEmail?: string;
   pickupAddress: string;
   dropoffAddress: string;
+  pickupLat?: number;
+  pickupLng?: number;
+  dropoffLat?: number;
+  dropoffLng?: number;
   distance: number;
   packageWeight: number;
   packageDescription: string;
   status: OrderStatus;
   createdAt: string;
   estimatedDelivery?: string;
+  assignedAt?: string;
   driverId?: string;
   driverName?: string;
   driverPhone?: string;

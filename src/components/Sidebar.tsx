@@ -1,11 +1,10 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Mail, MapPin, FileText, Settings, LayoutDashboard, ClipboardList, Map, Users, BarChart3, Bell, Truck, CheckCircle, DollarSign, UserCircle, Building, Wrench, ScrollText, LogOut } from "lucide-react";
+import { Home, Package, Mail, MapPin, FileText, Settings, LayoutDashboard, ClipboardList, Map, Users, BarChart3, Bell, Truck, CheckCircle, DollarSign, UserCircle, Building, Wrench, ScrollText, Webhook } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { UserRole } from "@/types";
 import { Sidebar as SidebarUI, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserProfileMenu } from "@/components/UserProfileMenu";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 interface NavItem {
   title: string;
   url: string;
@@ -22,12 +21,8 @@ const navigationItems: Record<UserRole, NavItem[]> = {
     url: "/customer/orders",
     icon: Package
   }, {
-    title: "Get a Quote",
-    url: "/quote",
-    icon: Mail
-  }, {
-    title: "Track Delivery",
-    url: "/track",
+    title: "Track Order",
+    url: "/customer/track",
     icon: MapPin
   }, {
     title: "Invoices",
@@ -76,7 +71,7 @@ const navigationItems: Record<UserRole, NavItem[]> = {
     url: "/driver/jobs",
     icon: Truck
   }, {
-    title: "Available Jobs",
+    title: "Job Board",
     url: "/driver/available",
     icon: ClipboardList
   }, {
@@ -108,6 +103,10 @@ const navigationItems: Record<UserRole, NavItem[]> = {
     title: "Pricing",
     url: "/admin/pricing",
     icon: DollarSign
+  }, {
+    title: "Webhooks",
+    url: "/admin/webhooks",
+    icon: Webhook
   }, {
     title: "Reports",
     url: "/admin/reports",
@@ -215,27 +214,7 @@ export function Sidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-4 bg-[#0a0e14]">
-        <DropdownMenu>
-          <DropdownMenuTrigger className="w-full">
-            <div className="flex items-center gap-3 hover:bg-muted/50 rounded-lg p-2 transition-colors">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className={roleColors[currentUser.role]}>
-                  {getInitials(currentUser.name)}
-                </AvatarFallback>
-              </Avatar>
-              {open && <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-foreground">{currentUser.name}</p>
-                  <p className="text-xs text-muted-foreground">{roleLabels[currentUser.role]}</p>
-                </div>}
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <UserProfileMenu />
       </SidebarFooter>
     </SidebarUI>;
 }

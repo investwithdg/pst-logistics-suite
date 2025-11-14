@@ -165,7 +165,14 @@ export const api = {
   },
 
   assignDriver: async (data: { orderId: string; driverId: string }): Promise<ApiResponse> => {
-    return callWebhook('assign-driver', data, 'make-webhook');
+    const result = await callWebhook('assign-driver', data, 'make-webhook');
+    
+    // Sync driver assignment to HubSpot after successful assignment
+    if (result.success) {
+      await callWebhook('sync-driver-assignment', data, 'edge-function');
+    }
+    
+    return result;
   },
 
   updateStatus: async (data: { orderId: string; status: string }): Promise<ApiResponse> => {
