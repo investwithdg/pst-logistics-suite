@@ -15,7 +15,8 @@ const DriverAvailable = () => {
   return (
     <DashboardLayout>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Available Jobs</h1>
+        <h1 className="text-3xl font-bold">Job Board</h1>
+        <p className="text-muted-foreground">Available deliveries assigned by dispatchers</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

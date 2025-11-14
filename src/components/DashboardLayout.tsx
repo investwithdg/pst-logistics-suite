@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Sidebar } from "@/components/Sidebar";
-import { Breadcrumbs } from "@/components/Breadcrumbs";
 import NotificationBell from "@/components/NotificationBell";
 import { useApp } from "@/contexts/AppContext";
 import { RefreshCw } from "lucide-react";
@@ -44,7 +43,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <main className="flex-1 overflow-auto p-6">
             <div className="max-w-[1600px] mx-auto space-y-6">
-              <Breadcrumbs />
               {children}
             </div>
           </main>
