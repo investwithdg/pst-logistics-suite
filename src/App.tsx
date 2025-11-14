@@ -14,6 +14,7 @@ import RouteReplay from "./pages/RouteReplay";
 import SignIn from "./pages/SignIn";
 import CustomerDashboard from "./pages/customer/CustomerDashboard";
 import CustomerOrders from "./pages/customer/CustomerOrders";
+import CustomerTrack from "./pages/customer/CustomerTrack";
 import CustomerInvoices from "./pages/customer/CustomerInvoices";
 import CustomerSettings from "./pages/customer/CustomerSettings";
 import DispatcherOrders from "./pages/dispatcher/DispatcherOrders";
@@ -33,6 +34,7 @@ import DriverSettings from "./pages/driver/DriverSettings";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPricing from "./pages/admin/AdminPricing";
+import AdminWebhooks from "./pages/admin/AdminWebhooks";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminCompany from "./pages/admin/AdminCompany";
 import AdminSystem from "./pages/admin/AdminSystem";
@@ -60,10 +62,11 @@ const App = () => (
           
           {/* Customer routes */}
           <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
-          <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer']}><CustomerDashboard /></ProtectedRoute>} />
-          <Route path="/customer/orders" element={<ProtectedRoute allowedRoles={['customer']}><CustomerOrders /></ProtectedRoute>} />
-          <Route path="/customer/invoices" element={<ProtectedRoute allowedRoles={['customer']}><CustomerInvoices /></ProtectedRoute>} />
-          <Route path="/customer/settings" element={<ProtectedRoute allowedRoles={['customer']}><CustomerSettings /></ProtectedRoute>} />
+            <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer']}><CustomerDashboard /></ProtectedRoute>} />
+            <Route path="/customer/orders" element={<ProtectedRoute allowedRoles={['customer']}><CustomerOrders /></ProtectedRoute>} />
+            <Route path="/customer/track" element={<ProtectedRoute allowedRoles={['customer']}><CustomerTrack /></ProtectedRoute>} />
+            <Route path="/customer/invoices" element={<ProtectedRoute allowedRoles={['customer']}><CustomerInvoices /></ProtectedRoute>} />
+            <Route path="/customer/settings" element={<ProtectedRoute allowedRoles={['customer']}><CustomerSettings /></ProtectedRoute>} />
           
           {/* Dispatcher routes */}
           <Route path="/dispatcher" element={<Navigate to="/dispatcher/dashboard" replace />} />
@@ -87,14 +90,15 @@ const App = () => (
           
           {/* Admin routes */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
-          <Route path="/admin/pricing" element={<ProtectedRoute allowedRoles={['admin']}><AdminPricing /></ProtectedRoute>} />
-          <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>} />
-          <Route path="/admin/company" element={<ProtectedRoute allowedRoles={['admin']}><AdminCompany /></ProtectedRoute>} />
-          <Route path="/admin/system" element={<ProtectedRoute allowedRoles={['admin']}><AdminSystem /></ProtectedRoute>} />
-          <Route path="/admin/audit" element={<ProtectedRoute allowedRoles={['admin']}><AdminAudit /></ProtectedRoute>} />
-          <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
+            <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
+            <Route path="/admin/pricing" element={<ProtectedRoute allowedRoles={['admin']}><AdminPricing /></ProtectedRoute>} />
+            <Route path="/admin/webhooks" element={<ProtectedRoute allowedRoles={['admin']}><AdminWebhooks /></ProtectedRoute>} />
+            <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>} />
+            <Route path="/admin/company" element={<ProtectedRoute allowedRoles={['admin']}><AdminCompany /></ProtectedRoute>} />
+            <Route path="/admin/system" element={<ProtectedRoute allowedRoles={['admin']}><AdminSystem /></ProtectedRoute>} />
+            <Route path="/admin/audit" element={<ProtectedRoute allowedRoles={['admin']}><AdminAudit /></ProtectedRoute>} />
+            <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><AdminSettings /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           </Routes>

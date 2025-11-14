@@ -11,8 +11,11 @@ const DispatcherDrivers = () => {
   const { drivers } = useApp();
   return (
     <DashboardLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Drivers</h1>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Drivers</h1>
+          <p className="text-muted-foreground">View driver information. Contact admin to add new drivers.</p>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -43,10 +46,9 @@ const DispatcherDrivers = () => {
               <CardTitle className="text-base">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full justify-between" variant="outline" onClick={() => navigate("/admin/users")}>
-                <span>Add Driver</span>
-                <UserPlus className="h-4 w-4" />
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                Driver management is handled by administrators. Visit admin panel to add new drivers.
+              </p>
             </CardContent>
           </Card>
         </div>
