@@ -20,6 +20,37 @@ serve(async (req) => {
     const { order_id, sync_type, changes } = await req.json();
     console.log(`[sync-order-to-hubspot] Syncing order ${order_id}, type: ${sync_type}`);
 
+    // Map sync types to webhook names (4 core webhooks)
+    const syncTypeToWebhook: Record<string, string> = {
+      'order-creation': 'stripe-payment-success',
+      'status-update': 'order-status-update',
+      'driver-assignment': 'driver-assignment',
+      'proof-of-delivery': 'order-status-update',
+      'order-update': 'order-status-update',
+      'payment-update': 'stripe-payment-success',
+      'delivery-exception': 'order-status-update'
+    };
+
+    const webhookName = syncTypeToWebhook[sync_type];
+    if (!webhookName) {
+      console.warn(`[sync-order-to-hubspot] Unknown sync type: ${sync_type}`);
+      
+      // Log failed webhook
+      await supabaseClient
+        .from('webhook_logs')
+        .insert({
+          webhook_name: 'unknown',
+          direction: 'outgoing',
+          status: 'failed',
+          error_message: `Unknown sync type: ${sync_type}`
+        });
+      
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unknown sync type' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
     // Fetch order details
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
@@ -40,11 +71,11 @@ serve(async (req) => {
       );
     }
 
-    // Get webhook URL from config based on sync type
+    // Get webhook URL from config
     const { data: webhookConfig } = await supabaseClient
       .from('webhook_config')
       .select('webhook_url, is_active')
-      .eq('webhook_name', `hubspot-${sync_type}`)
+      .eq('webhook_name', webhookName)
       .eq('is_active', true)
       .single();
 
@@ -72,7 +103,8 @@ serve(async (req) => {
     let payload: any = {
       deal_id: order.hubspot_deal_id,
       order_number: order.order_number,
-      order_id: order.id
+      order_id: order.id,
+      sync_type: sync_type  // Tell Make.com what type of update this is
     };
 
     switch (sync_type) {
@@ -257,7 +289,7 @@ serve(async (req) => {
     await supabaseClient
       .from('webhook_logs')
       .insert({
-        webhook_name: `hubspot-${sync_type}`,
+        webhook_name: webhookName,
         direction: 'outgoing',
         payload,
         response: webhookResult,
@@ -272,26 +304,47 @@ serve(async (req) => {
   } catch (error) {
     console.error('[sync-order-to-hubspot] Error:', error);
 
-    const { order_id, sync_type } = await req.json().catch(() => ({}));
-
-    // Log failed sync
-    if (order_id) {
-      await supabaseClient
-        .from('hubspot_sync_status')
-        .insert({
-          order_id,
-          sync_type: sync_type || 'unknown',
-          sync_status: 'failed',
-          error_message: error instanceof Error ? error.message : 'Unknown error',
-          last_attempt_at: new Date().toISOString()
-        });
+    let order_id: string | undefined;
+    let webhookNameForLog = 'unknown';
+    
+    try {
+      const body = await req.json();
+      order_id = body.order_id;
+      const sync_type = body.sync_type;
+      
+      // Map sync type to webhook name for logging
+      const syncTypeToWebhook: Record<string, string> = {
+        'order-creation': 'stripe-payment-success',
+        'status-update': 'order-status-update',
+        'driver-assignment': 'driver-assignment',
+        'proof-of-delivery': 'order-status-update',
+        'order-update': 'order-status-update',
+        'payment-update': 'stripe-payment-success',
+        'delivery-exception': 'order-status-update'
+      };
+      webhookNameForLog = syncTypeToWebhook[sync_type] || 'unknown';
+      
+      // Log failed sync
+      if (order_id) {
+        await supabaseClient
+          .from('hubspot_sync_status')
+          .insert({
+            order_id,
+            sync_type: sync_type || 'unknown',
+            sync_status: 'failed',
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+            last_attempt_at: new Date().toISOString()
+          });
+      }
+    } catch (parseError) {
+      console.error('[sync-order-to-hubspot] Failed to parse request for error logging:', parseError);
     }
 
     // Log failed webhook
     await supabaseClient
       .from('webhook_logs')
       .insert({
-        webhook_name: `hubspot-${sync_type || 'unknown'}`,
+        webhook_name: webhookNameForLog,
         direction: 'outgoing',
         status: 'failed',
         error_message: error instanceof Error ? error.message : 'Unknown error'
