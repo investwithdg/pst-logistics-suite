@@ -134,11 +134,40 @@ const Quote = () => {
     }
 
     toast({
-      title: "Redirecting to checkout...",
-      description: "Please wait while we prepare your payment",
+      title: "Preparing your order...",
+      description: "Syncing with HubSpot and preparing payment",
     });
 
     try {
+      // First, sync quote to HubSpot to create contact + deal
+      let hubspotDealId = null;
+      try {
+        const quoteSync = await api.syncQuoteToHubSpot({
+          customer_name: `${formData.firstName} ${formData.lastName}`,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+          pickup_address: formData.pickupAddress,
+          dropoff_address: formData.dropoffAddress,
+          package_description: formData.deliverySize || "Package delivery",
+          package_weight: parseFloat(formData.weight),
+          distance: parseFloat(formData.distance),
+          total_price: priceBreakdown.total,
+          base_rate: priceBreakdown.baseRate,
+          mileage_charge: priceBreakdown.distanceCharge,
+          surcharge: priceBreakdown.weightCharge,
+          special_instructions: formData.specialInstructions,
+        });
+        
+        if (quoteSync.success && quoteSync.data) {
+          hubspotDealId = quoteSync.data.hubspot_deal_id;
+          console.log('[Quote] HubSpot deal created:', hubspotDealId);
+        }
+      } catch (error) {
+        console.warn('[Quote] Failed to sync to HubSpot:', error);
+        // Continue with payment even if HubSpot sync fails
+      }
+
+      // Now proceed with payment, including the HubSpot deal ID
       const response = await api.processPayment({
         customerName: `${formData.firstName} ${formData.lastName}`,
         customerEmail: formData.email,
@@ -152,6 +181,7 @@ const Quote = () => {
         baseRate: priceBreakdown.baseRate,
         mileageCharge: priceBreakdown.distanceCharge,
         surcharge: priceBreakdown.weightCharge,
+        hubspotDealId: hubspotDealId,
       });
 
       if (response.success && response.url) {

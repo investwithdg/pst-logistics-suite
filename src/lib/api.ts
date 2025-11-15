@@ -194,4 +194,9 @@ export const api = {
   reassignDriver: async (orderId: string, newDriverId: string): Promise<ApiResponse> => {
     return callWebhook('reassign-driver', { orderId, newDriverId }, 'make-webhook');
   },
+
+  // Sync quote acceptance to HubSpot (creates contact + deal before payment)
+  syncQuoteToHubSpot: async (quoteData: any): Promise<ApiResponse> => {
+    return callWebhook('sync-hubspot-quote', quoteData, 'edge-function');
+  },
 };
