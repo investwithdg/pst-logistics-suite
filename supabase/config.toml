@@ -18,5 +18,8 @@ verify_jwt = false
 [functions.seed-test-users]
 verify_jwt = false
 
+[functions.sync-hubspot-quote]
+verify_jwt = false
+
 [functions.sync-order-to-hubspot]
 verify_jwt = false

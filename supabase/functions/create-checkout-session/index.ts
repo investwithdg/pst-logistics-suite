@@ -21,6 +21,7 @@ const CheckoutRequestSchema = z.object({
   baseRate: z.number(),
   mileageCharge: z.number(),
   surcharge: z.number(),
+  hubspotDealId: z.string().optional(),
 });
 
 serve(async (req) => {
@@ -124,6 +125,7 @@ serve(async (req) => {
         surcharge: input.surcharge,
         total_price: input.amount,
         status: 'pending_payment',
+        hubspot_deal_id: input.hubspotDealId || null,
       })
       .select()
       .single();

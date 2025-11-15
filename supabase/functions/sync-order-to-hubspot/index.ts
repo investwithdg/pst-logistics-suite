@@ -31,8 +31,8 @@ serve(async (req) => {
       throw new Error(`Order not found: ${order_id}`);
     }
 
-    // Only sync if order has HubSpot deal ID
-    if (!order.hubspot_deal_id) {
+    // Only sync if order has HubSpot deal ID (except for order-creation which creates the deal)
+    if (!order.hubspot_deal_id && sync_type !== 'order-creation') {
       console.log(`[sync-order-to-hubspot] Order ${order_id} has no HubSpot deal ID, skipping sync`);
       return new Response(
         JSON.stringify({ success: true, message: 'No HubSpot deal ID, skipped' }),
