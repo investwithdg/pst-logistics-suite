@@ -77,14 +77,49 @@ serve(async (req) => {
 
     switch (sync_type) {
       case 'status-update':
+        // Send ALL fields for complete pipeline stage context
         payload = {
           ...payload,
           status: order.status,
           updated_at: new Date().toISOString(),
+          
+          // Scheduled times (for Accepted/Scheduled stage)
+          scheduled_pickup_time: order.scheduled_pickup_time,
+          scheduled_delivery_time: order.scheduled_delivery_time,
+          
+          // Locations
+          pickup_address: order.pickup_address,
+          dropoff_address: order.dropoff_address,
+          pickup_lat: order.pickup_lat,
+          pickup_lng: order.pickup_lng,
+          dropoff_lat: order.dropoff_lat,
+          dropoff_lng: order.dropoff_lng,
+          
+          // Actual times (for each stage)
           picked_up_at: order.picked_up_at,
           in_transit_at: order.in_transit_at,
           delivered_at: order.delivered_at,
-          completed_at: order.completed_at
+          completed_at: order.completed_at,
+          
+          // Driver info (if assigned)
+          driver_id: order.driver_id,
+          driver_name: order.driver_name,
+          driver_phone: order.driver_phone,
+          
+          // Delivery details
+          delivery_type: order.delivery_type,
+          vehicle_type_required: order.vehicle_type_required,
+          rush_requested: order.rush_requested,
+          number_of_stops: order.number_of_stops,
+          
+          // Exception handling
+          delivery_exception_type: order.delivery_exception_type,
+          delivery_exception_notes: order.delivery_exception_notes,
+          driver_contacted_customer: order.driver_contacted_customer,
+          driver_feedback: order.driver_feedback,
+          
+          // Customer feedback (for Completed stage)
+          special_instructions: order.special_instructions
         };
         break;
 
@@ -94,7 +129,16 @@ serve(async (req) => {
           driver_name: order.driver_name,
           driver_phone: order.driver_phone,
           driver_id: order.driver_id,
-          assigned_at: order.assigned_at
+          assigned_at: order.assigned_at,
+          
+          // Include order context for dispatcher
+          status: order.status,
+          pickup_address: order.pickup_address,
+          dropoff_address: order.dropoff_address,
+          scheduled_pickup_time: order.scheduled_pickup_time,
+          scheduled_delivery_time: order.scheduled_delivery_time,
+          package_description: order.package_description,
+          special_instructions: order.special_instructions
         };
         break;
 
@@ -147,6 +191,29 @@ serve(async (req) => {
           exception_notes: order.delivery_exception_notes,
           driver_contacted_customer: order.driver_contacted_customer,
           driver_feedback: order.driver_feedback
+        };
+        break;
+
+      case 'order-creation':
+        // Full order details when first created after payment
+        payload = {
+          ...payload,
+          customer_name: order.customer_name,
+          customer_email: order.customer_email,
+          customer_phone: order.customer_phone,
+          pickup_address: order.pickup_address,
+          dropoff_address: order.dropoff_address,
+          package_description: order.package_description,
+          special_instructions: order.special_instructions,
+          total_price: order.total_price,
+          payment_status: order.payment_status,
+          status: order.status,
+          scheduled_pickup_time: order.scheduled_pickup_time,
+          scheduled_delivery_time: order.scheduled_delivery_time,
+          delivery_type: order.delivery_type,
+          vehicle_type_required: order.vehicle_type_required,
+          distance: order.distance,
+          package_weight: order.package_weight
         };
         break;
 
