@@ -1,33 +1,37 @@
 # HubSpot Integration Workflow
 
 ## Overview
-This document explains how your delivery app syncs with HubSpot through Make.com webhooks at each stage of the order lifecycle.
+This document explains the four core webhooks that power the HubSpot integration. These webhooks ensure your delivery app data is automatically mirrored in HubSpot.
+
+## Core Principle
+**The app database is the source of truth.** HubSpot mirrors this data for CRM and sales workflows. Data flows one direction: **App → HubSpot**.
 
 ## Data Flow Architecture
 
 ```mermaid
 graph TD
-    A[Quote Accepted] --> B[Sync to HubSpot]
-    B --> C[Create Contact + Deal]
-    C --> D[Return deal_id]
-    D --> E[Store deal_id in Order]
+    A[Quote Accepted] --> B[Create Contact + Deal in HubSpot]
+    B --> C[Return deal_id]
+    C --> D[Store deal_id]
+    D --> E[Redirect to Stripe]
     E --> F[Payment Succeeds]
-    F --> G[Order Created]
-    G --> H[Auto-sync to HubSpot]
-    H --> I[Driver Assigned]
-    I --> J[Auto-sync to HubSpot]
-    J --> K[Status Updates]
-    K --> L[Auto-sync to HubSpot]
+    F --> G[Create Order]
+    G --> H[Attach to Deal in HubSpot]
+    H --> I[Dispatcher Assigns Driver]
+    I --> J[Update Deal with Driver Info]
+    J --> K[Status Changes Through Pipeline]
+    K --> L[Update Deal at Each Stage]
     L --> M[Proof of Delivery]
-    M --> N[Auto-sync to HubSpot]
+    M --> N[Close Deal]
 ```
 
-## Sync Events
+## The Four Core Webhooks
 
-### 1. Quote Accepted → Create Contact + Deal
+### Webhook I: Quote Accepted → Create Contact + Deal
 **When**: User clicks "Pay Now" after calculating quote  
-**Before**: Payment processing  
-**Purpose**: Create HubSpot contact and deal to track the opportunity
+**Before**: Payment processing (Stripe redirect)  
+**Purpose**: Create HubSpot contact and deal to track opportunity  
+**Visibility**: ONLY ADMIN can see deals in "New/Order Received" state until payment succeeds
 
 **Edge Function**: `sync-hubspot-quote`  
 **Webhook Config**: `hubspot-quote-accepted`
@@ -67,10 +71,11 @@ graph TD
 
 ---
 
-### 2. Payment Succeeds → Order Created
+### Webhook II: Stripe Checkout Succeeds → Create Order + Attach to Deal
 **When**: Stripe checkout completes successfully  
 **Trigger**: Database trigger on `orders` table (INSERT)  
-**Purpose**: Attach order to existing HubSpot deal
+**Purpose**: Create order record and attach to deal from Webhook I  
+**Result**: Cash is collected, order funnels into dispatcher UI
 
 **Edge Function**: `sync-order-to-hubspot`  
 **Webhook Config**: `hubspot-order-creation`  
@@ -97,10 +102,11 @@ graph TD
 
 ---
 
-### 3. Driver Assignment
-**When**: Dispatcher assigns a driver to an order  
+### Webhook III: Driver Assignment → Deal Pipeline Update
+**When**: Dispatcher selects and assigns a driver to an order  
 **Trigger**: Database trigger on `orders` table (UPDATE driver_id)  
-**Purpose**: Update HubSpot with driver information
+**Purpose**: Update HubSpot deal with driver information  
+**Response**: Webhook confirms assignment and signals sync in HubSpot
 
 **Edge Function**: `sync-order-to-hubspot`  
 **Webhook Config**: `hubspot-driver-assignment`  
@@ -121,10 +127,11 @@ graph TD
 
 ---
 
-### 4. Order Status Updates
-**When**: Order status changes (pending → assigned → picked-up → in-transit → delivered → completed)  
+### Webhook IV: Order Status Updates → Pipeline Progression
+**When**: Order status changes through the delivery lifecycle  
 **Trigger**: Database trigger on `orders` table (UPDATE status)  
-**Purpose**: Keep HubSpot deal pipeline in sync
+**Purpose**: Update HubSpot deal pipeline stage AND populate stage-specific data  
+**Note**: Each status update includes ALL available fields, even if empty
 
 **Edge Function**: `sync-order-to-hubspot`  
 **Webhook Config**: `hubspot-status-update`  
@@ -143,20 +150,27 @@ graph TD
 }
 ```
 
-**Status Mapping to HubSpot Pipeline**:
-- `pending` → New Deal
-- `assigned` → Driver Assigned
-- `picked-up` → Picked Up
-- `in-transit` → In Transit
-- `delivered` → Delivered
-- `completed` → Closed Won
+**Complete Pipeline Mapping**:
+- `pending` → **New/Order Received** (pre-Stripe success, admin-only visibility)
+- `assigned` → **Accepted/Scheduled** (includes scheduled pickup/delivery times + locations)
+- `assigned` (with driver) → **Driver Assigned**
+- `picked-up` → **In Progress/Out for Pickup**
+- `picked-up` (confirmed) → **Picked Up** (includes actual pickup time)
+- `in-transit` → **In Transit**
+- `delivered` → **Delivered** (includes actual delivery time + PoD URL)
+- `completed` → **Completed/Closed** (includes driver feedback from customer)
+- `cancelled` → **Cancelled**
+- Status exceptions → **Failed/RTS** (Return to Sender)
+
+**Field Availability**: All fields are sent with every status update, even if empty. This ensures HubSpot always has complete data structure.
 
 ---
 
-### 5. Proof of Delivery
+### Additional Sync: Proof of Delivery
 **When**: Driver submits proof of delivery (photo, signature, notes)  
 **Trigger**: Database trigger on `proof_of_delivery` table (INSERT)  
-**Purpose**: Document delivery completion in HubSpot
+**Purpose**: Document delivery completion and close deal in HubSpot  
+**Included in**: Webhook IV (Status Update to "delivered")
 
 **Edge Function**: `sync-order-to-hubspot`  
 **Webhook Config**: `hubspot-proof-of-delivery`  
@@ -178,10 +192,11 @@ graph TD
 
 ---
 
-### 6. Payment Updates
+### Additional Sync: Payment Updates
 **When**: Payment status changes (e.g., refund processed)  
 **Trigger**: Database trigger on `orders` table (UPDATE payment_status)  
-**Purpose**: Keep HubSpot financial records accurate
+**Purpose**: Keep HubSpot financial records accurate  
+**Note**: Rare event after initial payment
 
 **Edge Function**: `sync-order-to-hubspot`  
 **Webhook Config**: `hubspot-payment-update`  
@@ -201,10 +216,11 @@ graph TD
 
 ---
 
-### 7. Delivery Exceptions
+### Additional Sync: Delivery Exceptions
 **When**: Driver reports delivery issue (e.g., recipient not home)  
 **Trigger**: Database trigger on `orders` table (UPDATE delivery_exception_type)  
-**Purpose**: Alert in HubSpot for follow-up action
+**Purpose**: Write exception details into HubSpot for follow-up  
+**Examples**: Customer unavailable, wrong address, access denied
 
 **Edge Function**: `sync-order-to-hubspot`  
 **Webhook Config**: `hubspot-delivery-exception`  
@@ -262,22 +278,34 @@ Copy each webhook URL from Make.com.
 
 ---
 
-## Key Differences from Standard Approach
+## Key Architecture Decisions
 
-### ✅ Automatic Syncing
-- **No manual button clicks** - Everything syncs automatically
-- **Database triggers** ensure no changes are missed
-- **Works regardless of UI** - Direct DB changes also sync
+### ✅ Four Core Webhooks Only
+These four webhooks handle the entire lifecycle:
+1. **Quote Accepted** - Creates opportunity in HubSpot
+2. **Order Created** - Converts opportunity to active order
+3. **Driver Assigned** - Updates deal with fulfillment info
+4. **Status Updates** - Moves deal through pipeline with stage-specific data
 
-### ✅ Quote Before Payment
-- Quote creates the HubSpot deal **before** payment
-- Order inherits the `deal_id` when payment succeeds
-- Ensures all quotes are tracked, even if payment fails
+### ✅ Automatic Database Triggers
+- **No manual syncing** - Database triggers fire automatically
+- **No missed updates** - Every relevant change syncs
+- **UI-agnostic** - Works regardless of how data changes
 
-### ✅ Single Source of Truth
-- **App database** is the source of truth
-- **HubSpot** is the mirror for sales/CRM workflows
-- Data flows **one direction**: App → HubSpot
+### ✅ Quote-First Workflow
+- Quote creates deal **before** payment
+- Abandoned carts = deals without orders
+- Sales can follow up on abandoned quotes
+
+### ✅ Complete Field Mapping
+- **All fields sent** - Even if empty/null
+- **No missing data** - HubSpot always has full structure
+- **Stage-specific context** - Relevant fields for each pipeline stage
+
+### ✅ App as Source of Truth
+- **App database** = source of truth
+- **HubSpot** = CRM mirror
+- **One-way sync**: App → HubSpot
 
 ---
 
