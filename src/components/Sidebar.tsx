@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Package, Mail, MapPin, FileText, Settings, LayoutDashboard, ClipboardList, Map, Users, BarChart3, Bell, Truck, CheckCircle, DollarSign, UserCircle, Building, Wrench, ScrollText, Webhook } from "lucide-react";
+import { Home, Package, Mail, MapPin, FileText, Settings, LayoutDashboard, ClipboardList, Map, Users, BarChart3, Bell, Truck, CheckCircle, DollarSign, Building, Wrench, ScrollText, Webhook } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { UserRole } from "@/types";
 import { Sidebar as SidebarUI, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -28,10 +28,6 @@ const navigationItems: Record<UserRole, NavItem[]> = {
     title: "Invoices",
     url: "/customer/invoices",
     icon: FileText
-  }, {
-    title: "Settings",
-    url: "/customer/settings",
-    icon: Settings
   }],
   dispatcher: [{
     title: "Dashboard",
@@ -57,10 +53,6 @@ const navigationItems: Record<UserRole, NavItem[]> = {
     title: "Notifications",
     url: "/dispatcher/notifications",
     icon: Bell
-  }, {
-    title: "Settings",
-    url: "/dispatcher/settings",
-    icon: Settings
   }],
   driver: [{
     title: "Dashboard",
@@ -82,14 +74,6 @@ const navigationItems: Record<UserRole, NavItem[]> = {
     title: "Earnings",
     url: "/driver/earnings",
     icon: DollarSign
-  }, {
-    title: "Profile",
-    url: "/driver/profile",
-    icon: UserCircle
-  }, {
-    title: "Settings",
-    url: "/driver/settings",
-    icon: Settings
   }],
   admin: [{
     title: "Dashboard",
@@ -123,10 +107,6 @@ const navigationItems: Record<UserRole, NavItem[]> = {
     title: "Audit Log",
     url: "/admin/audit",
     icon: ScrollText
-  }, {
-    title: "Settings",
-    url: "/admin/settings",
-    icon: Settings
   }]
 };
 const roleColors: Record<UserRole, string> = {
