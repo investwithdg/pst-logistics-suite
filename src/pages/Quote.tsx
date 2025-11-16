@@ -142,6 +142,7 @@ const Quote = () => {
       // First, sync quote to HubSpot to create contact + deal
       let hubspotDealId = null;
       try {
+        console.log('[Quote] Starting HubSpot sync...');
         const quoteSync = await api.syncQuoteToHubSpot({
           customer_name: `${formData.firstName} ${formData.lastName}`,
           customer_email: formData.email,
@@ -158,14 +159,20 @@ const Quote = () => {
           special_instructions: formData.specialInstructions,
         });
         
+        console.log('[Quote] HubSpot sync response:', quoteSync);
         if (quoteSync.success && quoteSync.data) {
           hubspotDealId = quoteSync.data.hubspot_deal_id;
           console.log('[Quote] HubSpot deal created:', hubspotDealId);
         }
       } catch (error) {
-        console.warn('[Quote] Failed to sync to HubSpot:', error);
+        console.error('[Quote] HubSpot sync error:', error);
         // Continue with payment even if HubSpot sync fails
       }
+
+      console.log('[Quote] Preparing payment with data:', {
+        hubspotDealId,
+        deliverySize: formData.deliverySize,
+      });
 
       // Now proceed with payment, including the HubSpot deal ID
       const response = await api.processPayment({
@@ -185,14 +192,17 @@ const Quote = () => {
         hubspotDealId: hubspotDealId,
       });
 
-      console.log('[Quote] Payment response:', response);
+      console.log('[Quote] Payment API response:', response);
+      console.log('[Quote] Response type:', typeof response);
+      console.log('[Quote] Response.success:', response?.success);
+      console.log('[Quote] Response.url:', response?.url);
 
       if (response.success && response.url) {
-        console.log('[Quote] Redirecting to Stripe:', response.url);
+        console.log('[Quote] ✅ Redirecting to Stripe:', response.url);
         // Redirect to Stripe Checkout - page will navigate away
         window.location.href = response.url;
       } else {
-        console.error('[Quote] Invalid response:', response);
+        console.error('[Quote] ❌ Invalid response:', response);
         throw new Error(response.error || 'Failed to create checkout session');
       }
     } catch (error) {
