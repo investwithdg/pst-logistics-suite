@@ -235,6 +235,7 @@ export type Database = {
           delivery_exception_type: string | null
           delivery_resolution_status: string | null
           delivery_route: Json | null
+          delivery_size: string | null
           delivery_type: string | null
           distance: number
           driver_contacted_customer: boolean | null
@@ -291,6 +292,7 @@ export type Database = {
           delivery_exception_type?: string | null
           delivery_resolution_status?: string | null
           delivery_route?: Json | null
+          delivery_size?: string | null
           delivery_type?: string | null
           distance: number
           driver_contacted_customer?: boolean | null
@@ -347,6 +349,7 @@ export type Database = {
           delivery_exception_type?: string | null
           delivery_resolution_status?: string | null
           delivery_route?: Json | null
+          delivery_size?: string | null
           delivery_type?: string | null
           distance?: number
           driver_contacted_customer?: boolean | null

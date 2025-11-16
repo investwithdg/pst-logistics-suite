@@ -228,15 +228,28 @@ serve(async (req) => {
 
       case 'order-creation':
         // Full order details when first created after payment
+        // Split customer name into firstName and lastName for HubSpot
+        const nameParts = order.customer_name?.split(' ') || [];
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
         payload = {
           ...payload,
+          // HubSpot-specific field names (matching webhook configuration)
+          firstName: firstName,
+          lastName: lastName,
+          email: order.customer_email,
+          pickupAddress: order.pickup_address,
+          dropoffAddress: order.dropoff_address,
+          amount: order.total_price,
+          deliverySize: order.delivery_size || '',
+          specialInstructions: order.special_instructions || '',
+          
+          // Additional fields for reference
           customer_name: order.customer_name,
           customer_email: order.customer_email,
           customer_phone: order.customer_phone,
-          pickup_address: order.pickup_address,
-          dropoff_address: order.dropoff_address,
           package_description: order.package_description,
-          special_instructions: order.special_instructions,
           total_price: order.total_price,
           payment_status: order.payment_status,
           status: order.status,
