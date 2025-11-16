@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { MapPin, Truck, Shield } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -52,28 +52,18 @@ const Index = () => {
 
             <div className="bg-background rounded-xl p-6 shadow-lg">
               <div className="grid md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2 text-left">
-                    Pickup
-                  </label>
-                  <Input
-                    placeholder="Enter pickup location"
-                    value={pickup}
-                    onChange={(e) => setPickup(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2 text-left">
-                    Dropoff
-                  </label>
-                  <Input
-                    placeholder="Enter dropoff location"
-                    value={dropoff}
-                    onChange={(e) => setDropoff(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
+                <AddressAutocomplete
+                  label="Pickup"
+                  value={pickup}
+                  onChange={setPickup}
+                  placeholder="Enter pickup location"
+                />
+                <AddressAutocomplete
+                  label="Dropoff"
+                  value={dropoff}
+                  onChange={setDropoff}
+                  placeholder="Enter dropoff location"
+                />
               </div>
               <Button 
                 className="w-full md:w-auto px-8"
