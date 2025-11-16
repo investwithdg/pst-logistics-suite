@@ -184,11 +184,15 @@ const Quote = () => {
         hubspotDealId: hubspotDealId,
       });
 
+      console.log('[Quote] Payment response:', response);
+
       if (response.success && response.url) {
+        console.log('[Quote] Redirecting to Stripe:', response.url);
         // Redirect to Stripe Checkout - page will navigate away
         window.location.href = response.url;
       } else {
-        throw new Error('Failed to create checkout session');
+        console.error('[Quote] Invalid response:', response);
+        throw new Error(response.error || 'Failed to create checkout session');
       }
     } catch (error) {
       console.error('Payment error:', error);
