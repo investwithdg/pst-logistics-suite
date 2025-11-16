@@ -177,6 +177,7 @@ const Quote = () => {
         distance: parseFloat(formData.distance),
         packageWeight: parseFloat(formData.weight || "0"),
         packageDescription: formData.specialInstructions || "Package delivery",
+        deliverySize: formData.deliverySize,
         amount: priceBreakdown.total,
         baseRate: priceBreakdown.baseRate,
         mileageCharge: priceBreakdown.distanceCharge,
