@@ -22,7 +22,7 @@ const ThankYou = () => {
       if (cancelled || resolved || !sessionId) return;
       try {
         const { data, error } = await supabase
-          .from('orders' as any)
+          .from('orders')
           .select('order_number')
           .eq('stripe_session_id', sessionId)
           .maybeSingle();
@@ -30,7 +30,7 @@ const ThankYou = () => {
           // continue polling on transient errors
           return;
         }
-        if (data?.order_number && !cancelled) {
+        if (data && 'order_number' in data && data.order_number && !cancelled) {
           setOrderNumber(data.order_number);
           resolved = true;
           return;

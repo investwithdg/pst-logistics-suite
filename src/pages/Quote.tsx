@@ -167,32 +167,7 @@ const Quote = () => {
     };
 
     const legacyApiHubspotSync = async () => {
-      try {
-        console.log('[Quote] Attempting legacy HubSpot sync via API...');
-        const legacySync = await api.syncQuoteToHubSpot({
-          customer_name: `${formData.firstName} ${formData.lastName}`,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-          pickup_address: formData.pickupAddress,
-          dropoff_address: formData.dropoffAddress,
-          package_description: formData.deliverySize || "Package delivery",
-          package_weight: parsedWeight,
-          distance: parsedDistance,
-          total_price: priceBreakdown.total,
-          base_rate: priceBreakdown.baseRate,
-          mileage_charge: priceBreakdown.distanceCharge,
-          surcharge: priceBreakdown.weightCharge,
-          special_instructions: formData.specialInstructions,
-        });
-        
-        console.log('[Quote] Legacy HubSpot sync response:', legacySync);
-        if (legacySync.success && legacySync.data?.hubspot_deal_id) {
-          return legacySync.data.hubspot_deal_id;
-        }
-      } catch (legacyError) {
-        console.error('[Quote] Legacy HubSpot API sync error:', legacyError);
-      }
-
+      // Legacy sync removed - using quote-accepted webhook only
       return null;
     };
 
