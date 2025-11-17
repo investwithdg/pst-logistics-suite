@@ -182,24 +182,29 @@ const Quote = () => {
       const parsedWeight = parseFloat(formData.weight || "0");
       const parsedDistance = parseFloat(formData.distance || "0");
 
+      const paymentData = {
+        customerName: `${formData.firstName} ${formData.lastName}`,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        pickupAddress: formData.pickupAddress,
+        dropoffAddress: formData.dropoffAddress,
+        distance: parsedDistance,
+        packageWeight: parsedWeight,
+        deliverySize: formData.deliverySize,
+        packageDescription: formData.packageDescription,
+        specialInstructions: formData.specialInstructions,
+        amount: priceBreakdown.total,
+        baseRate: priceBreakdown.baseRate,
+        mileageCharge: priceBreakdown.distanceCharge,
+        surcharge: priceBreakdown.weightCharge,
+      };
+
+      console.log('[Quote] 💰 Payment data being sent:', paymentData);
+      console.log('[Quote] 💵 Total amount:', priceBreakdown.total);
+
       // Call create-checkout-session edge function directly
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: {
-          customerName: `${formData.firstName} ${formData.lastName}`,
-          customerEmail: formData.email,
-          customerPhone: formData.phone,
-          pickupAddress: formData.pickupAddress,
-          dropoffAddress: formData.dropoffAddress,
-          distance: parsedDistance,
-          packageWeight: parsedWeight,
-          deliverySize: formData.deliverySize,
-          packageDescription: formData.packageDescription,
-          specialInstructions: formData.specialInstructions,
-          amount: priceBreakdown.total,
-          baseRate: priceBreakdown.baseRate,
-          mileageCharge: priceBreakdown.distanceCharge,
-          surcharge: priceBreakdown.weightCharge,
-        }
+        body: paymentData
       });
 
       if (error) {
