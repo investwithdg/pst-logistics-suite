@@ -17,34 +17,54 @@ serve(async (req) => {
     console.log('[sync-hubspot-quote] Received data:', body);
 
     // Send to Make.com webhook
+    const webhookPayload = {
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email,
+      pickupAddress: body.pickupAddress,
+      dropoffAddress: body.dropoffAddress,
+      amount: body.amount,
+      deliverySize: body.deliverySize,
+      weight: body.weight,
+      specialInstructions: body.specialInstructions,
+      distance: body.distance,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log('[sync-hubspot-quote] Sending payload to webhook:', webhookPayload);
+
     const response = await fetch(MAKE_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        firstName: body.firstName,
-        lastName: body.lastName,
-        email: body.email,
-        pickupAddress: body.pickupAddress,
-        dropoffAddress: body.dropoffAddress,
-        amount: body.amount,
-        deliverySize: body.deliverySize,
-        weight: body.weight,
-        specialInstructions: body.specialInstructions,
-        distance: body.distance,
-        timestamp: new Date().toISOString(),
-      }),
+      body: JSON.stringify(webhookPayload),
     });
 
+    const responseText = await response.text();
+    console.log('[sync-hubspot-quote] Webhook response status:', response.status);
+    console.log('[sync-hubspot-quote] Webhook response body:', responseText);
+
     if (!response.ok) {
-      throw new Error(`Webhook failed with status: ${response.status}`);
+      throw new Error(`Webhook failed with status ${response.status}: ${responseText}`);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.log('[sync-hubspot-quote] Response is not JSON, using raw text');
+      responseData = { raw: responseText };
     }
 
     console.log('[sync-hubspot-quote] Successfully sent to HubSpot');
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Data synced to HubSpot' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Data synced to HubSpot',
+        data: responseData 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

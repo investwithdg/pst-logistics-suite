@@ -160,17 +160,49 @@ const Quote = () => {
           body: legacyQuotePayload,
         });
         if (error) throw error;
-        console.log('[Quote] Legacy HubSpot sync succeeded');
+        console.log('[Quote] Legacy HubSpot sync via Supabase succeeded');
       } catch (legacyError) {
-        console.error('[Quote] Legacy HubSpot sync failed', legacyError);
+        console.error('[Quote] Legacy HubSpot sync via Supabase failed', legacyError);
       }
+    };
+
+    const legacyApiHubspotSync = async () => {
+      try {
+        console.log('[Quote] Attempting legacy HubSpot sync via API...');
+        const legacySync = await api.syncQuoteToHubSpot({
+          customer_name: `${formData.firstName} ${formData.lastName}`,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+          pickup_address: formData.pickupAddress,
+          dropoff_address: formData.dropoffAddress,
+          package_description: formData.deliverySize || "Package delivery",
+          package_weight: parsedWeight,
+          distance: parsedDistance,
+          total_price: priceBreakdown.total,
+          base_rate: priceBreakdown.baseRate,
+          mileage_charge: priceBreakdown.distanceCharge,
+          surcharge: priceBreakdown.weightCharge,
+          special_instructions: formData.specialInstructions,
+        });
+        
+        console.log('[Quote] Legacy HubSpot sync response:', legacySync);
+        if (legacySync.success && legacySync.data?.hubspot_deal_id) {
+          return legacySync.data.hubspot_deal_id;
+        }
+      } catch (legacyError) {
+        console.error('[Quote] Legacy HubSpot API sync error:', legacyError);
+      }
+
+      return null;
     };
 
     try {
       // First, notify Make.com (Quote Accepted) to create contact + deal
       let hubspotDealId = null;
       try {
+        console.log('[Quote] Starting HubSpot sync via quote-accepted webhook...');
         const quoteSync = await api.quoteAccepted(quotePayload);
+        console.log('[Quote] quote-accepted response:', quoteSync);
         
         const hubspotId = quoteSync.success ? quoteSync.data?.hubspot_deal_id : null;
 
@@ -178,13 +210,30 @@ const Quote = () => {
           hubspotDealId = hubspotId;
           console.log('[Quote] HubSpot deal created:', hubspotDealId);
         } else {
-          console.warn('[Quote] quote-accepted webhook missing hubspot_deal_id, using legacy sync');
-          await fallbackHubspotSync();
+          console.warn('[Quote] quote-accepted webhook missing hubspot_deal_id, attempting legacy sync...');
+          const legacyDealId = await legacyApiHubspotSync();
+          if (legacyDealId) {
+            hubspotDealId = legacyDealId;
+            console.log('[Quote] Legacy HubSpot deal created:', hubspotDealId);
+          } else {
+            await fallbackHubspotSync();
+          }
         }
       } catch (error) {
-        console.warn('[Quote] Failed to sync to HubSpot:', error);
-        await fallbackHubspotSync();
+        console.warn('[Quote] Failed to sync to HubSpot via quote-accepted webhook:', error);
+        const legacyDealId = await legacyApiHubspotSync();
+        if (legacyDealId) {
+          hubspotDealId = legacyDealId;
+          console.log('[Quote] Legacy HubSpot deal created after error:', hubspotDealId);
+        } else {
+          await fallbackHubspotSync();
+        }
       }
+
+      console.log('[Quote] Preparing payment with data:', {
+        hubspotDealId,
+        deliverySize: formData.deliverySize,
+      });
 
       // Now proceed with payment, including the HubSpot deal ID
       const response = await api.processPayment({
@@ -196,6 +245,7 @@ const Quote = () => {
         distance: parsedDistance,
         packageWeight: parsedWeight,
         packageDescription: formData.specialInstructions || "Package delivery",
+        deliverySize: formData.deliverySize,
         amount: priceBreakdown.total,
         baseRate: priceBreakdown.baseRate,
         mileageCharge: priceBreakdown.distanceCharge,
@@ -203,11 +253,18 @@ const Quote = () => {
         hubspotDealId: hubspotDealId,
       });
 
+      console.log('[Quote] Payment API response:', response);
+      console.log('[Quote] Response type:', typeof response);
+      console.log('[Quote] Response.success:', response?.success);
+      console.log('[Quote] Response.url:', response?.url);
+
       if (response.success && response.url) {
+        console.log('[Quote] ✅ Redirecting to Stripe:', response.url);
         // Redirect to Stripe Checkout - page will navigate away
         window.location.href = response.url;
       } else {
-        throw new Error('Failed to create checkout session');
+        console.error('[Quote] ❌ Invalid response:', response);
+        throw new Error(response.error || 'Failed to create checkout session');
       }
     } catch (error) {
       console.error('Payment error:', error);
