@@ -32,6 +32,7 @@ const Quote = () => {
     distance: "",
     weight: "35",
     deliverySize: "",
+    vehicleType: "",
     packageDescription: "",
     specialInstructions: "",
   });
@@ -191,6 +192,7 @@ const Quote = () => {
         distance: parsedDistance,
         packageWeight: parsedWeight,
         deliverySize: formData.deliverySize,
+        vehicleType: formData.vehicleType,
         packageDescription: formData.packageDescription,
         specialInstructions: formData.specialInstructions,
         amount: priceBreakdown.total,
@@ -367,15 +369,33 @@ const Quote = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Delivery Size <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    placeholder="e.g., Small, Medium, Large"
-                    value={formData.deliverySize}
-                    onChange={(e) => setFormData({ ...formData, deliverySize: e.target.value })}
-                  />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Delivery Size <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      placeholder="e.g., Small, Medium, Large"
+                      value={formData.deliverySize}
+                      onChange={(e) => setFormData({ ...formData, deliverySize: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Vehicle Type Required <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      value={formData.vehicleType}
+                      onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="">Select vehicle type...</option>
+                      <option value="Sedan">Sedan</option>
+                      <option value="Compact SUV">Compact SUV</option>
+                      <option value="Cargo Van">Cargo Van</option>
+                      <option value="XL Box Truck">XL Box Truck</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
