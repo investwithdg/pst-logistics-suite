@@ -25,6 +25,7 @@ serve(async (req) => {
       dropoffAddress: body.dropoffAddress,
       amount: body.amount,
       deliverySize: body.deliverySize || body.delivery_size,
+      vehicleType: body.vehicleType || body.vehicle_type,
       packageDescription: body.packageDescription || body.package_description,
       specialInstructions: body.specialInstructions || body.special_instructions,
       weight: body.weight || body.package_weight,
