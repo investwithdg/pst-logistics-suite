@@ -96,6 +96,32 @@ const Quote = () => {
           title: "Price calculated",
           description: `Distance: ${accurateDistance.toFixed(1)} miles • Total: $${response.data.totalPrice.toFixed(2)}`,
         });
+
+        // Trigger Make.com webhook with all quote data
+        const parsedWeight = parseFloat(formData.weight || "0");
+        const quotePayload = {
+          customer_name: `${formData.firstName} ${formData.lastName}`,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+          pickup_address: formData.pickupAddress,
+          dropoff_address: formData.dropoffAddress,
+          delivery_size: formData.deliverySize,
+          package_description: formData.packageDescription,
+          special_instructions: formData.specialInstructions,
+          package_weight: parsedWeight,
+          distance: accurateDistance,
+          total_price: response.data.totalPrice,
+          base_rate: response.data.baseRate,
+          mileage_charge: response.data.mileageCharge,
+          surcharge: response.data.surcharge,
+        };
+
+        try {
+          await api.quoteAccepted(quotePayload);
+          console.log('[Quote] Quote synced to Make.com');
+        } catch (error) {
+          console.error('[Quote] Failed to sync quote to Make.com:', error);
+        }
       }
     } catch (error) {
       toast({
@@ -118,140 +144,53 @@ const Quote = () => {
       return;
     }
 
-    toast({
-      title: "Preparing your order...",
-      description: "Syncing with HubSpot and preparing payment",
-    });
-
-    const parsedWeight = parseFloat(formData.weight || "0");
-    const parsedDistance = parseFloat(formData.distance || "0");
-
-    const quotePayload = {
-      customer_name: `${formData.firstName} ${formData.lastName}`,
-      customer_email: formData.email,
-      customer_phone: formData.phone,
-      pickup_address: formData.pickupAddress,
-      dropoff_address: formData.dropoffAddress,
-      delivery_size: formData.deliverySize,
-      package_description: formData.packageDescription,
-      special_instructions: formData.specialInstructions,
-      package_weight: parsedWeight,
-      distance: parsedDistance,
-      total_price: priceBreakdown.total,
-      base_rate: priceBreakdown.baseRate,
-      mileage_charge: priceBreakdown.distanceCharge,
-      surcharge: priceBreakdown.weightCharge,
-    };
-
-    const legacyQuotePayload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      pickupAddress: formData.pickupAddress,
-      dropoffAddress: formData.dropoffAddress,
-      amount: priceBreakdown.total,
-      deliverySize: formData.deliverySize,
-      packageDescription: formData.packageDescription,
-      specialInstructions: formData.specialInstructions,
-      weight: parsedWeight,
-      distance: parsedDistance,
-    };
-
-    const fallbackHubspotSync = async () => {
-      try {
-        const { error } = await supabase.functions.invoke('sync-hubspot-quote', {
-          body: legacyQuotePayload,
-        });
-        if (error) throw error;
-        console.log('[Quote] Legacy HubSpot sync via Supabase succeeded');
-      } catch (legacyError) {
-        console.error('[Quote] Legacy HubSpot sync via Supabase failed', legacyError);
-      }
-    };
-
-    const legacyApiHubspotSync = async () => {
-      // Legacy sync removed - using quote-accepted webhook only
-      return null;
-    };
+    setLoading(true);
 
     try {
-      // First, notify Make.com (Quote Accepted) to create contact + deal
-      let hubspotDealId = null;
-      try {
-        console.log('[Quote] Starting HubSpot sync via quote-accepted webhook...');
-        const quoteSync = await api.quoteAccepted(quotePayload);
-        console.log('[Quote] quote-accepted response:', quoteSync);
-        
-        const hubspotId = quoteSync.success ? quoteSync.data?.hubspot_deal_id : null;
+      const parsedWeight = parseFloat(formData.weight || "0");
+      const parsedDistance = parseFloat(formData.distance || "0");
 
-        if (hubspotId) {
-          hubspotDealId = hubspotId;
-          console.log('[Quote] HubSpot deal created:', hubspotDealId);
-        } else {
-          console.warn('[Quote] quote-accepted webhook missing hubspot_deal_id, attempting legacy sync...');
-          const legacyDealId = await legacyApiHubspotSync();
-          if (legacyDealId) {
-            hubspotDealId = legacyDealId;
-            console.log('[Quote] Legacy HubSpot deal created:', hubspotDealId);
-          } else {
-            await fallbackHubspotSync();
-          }
+      // Call create-checkout-session edge function directly
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: {
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          customerEmail: formData.email,
+          customerPhone: formData.phone,
+          pickupAddress: formData.pickupAddress,
+          dropoffAddress: formData.dropoffAddress,
+          distance: parsedDistance,
+          packageWeight: parsedWeight,
+          deliverySize: formData.deliverySize,
+          packageDescription: formData.packageDescription,
+          specialInstructions: formData.specialInstructions,
+          amount: priceBreakdown.total,
+          baseRate: priceBreakdown.baseRate,
+          mileageCharge: priceBreakdown.distanceCharge,
+          surcharge: priceBreakdown.weightCharge,
         }
-      } catch (error) {
-        console.warn('[Quote] Failed to sync to HubSpot via quote-accepted webhook:', error);
-        const legacyDealId = await legacyApiHubspotSync();
-        if (legacyDealId) {
-          hubspotDealId = legacyDealId;
-          console.log('[Quote] Legacy HubSpot deal created after error:', hubspotDealId);
-        } else {
-          await fallbackHubspotSync();
-        }
+      });
+
+      if (error) {
+        console.error('[Quote] Checkout session error:', error);
+        throw new Error(error.message || 'Failed to create checkout session');
       }
 
-      console.log('[Quote] Preparing payment with data:', {
-        hubspotDealId,
-        deliverySize: formData.deliverySize,
-      });
-
-      // Now proceed with payment, including the HubSpot deal ID and all three distinct fields
-      const response = await api.processPayment({
-        customerName: `${formData.firstName} ${formData.lastName}`,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        pickupAddress: formData.pickupAddress,
-        dropoffAddress: formData.dropoffAddress,
-        distance: parsedDistance,
-        packageWeight: parsedWeight,
-        deliverySize: formData.deliverySize,
-        packageDescription: formData.packageDescription,
-        specialInstructions: formData.specialInstructions,
-        amount: priceBreakdown.total,
-        baseRate: priceBreakdown.baseRate,
-        mileageCharge: priceBreakdown.distanceCharge,
-        surcharge: priceBreakdown.weightCharge,
-        hubspotDealId: hubspotDealId,
-      });
-
-      console.log('[Quote] Payment API response:', response);
-      console.log('[Quote] Response type:', typeof response);
-      console.log('[Quote] Response.success:', response?.success);
-      console.log('[Quote] Response.url:', response?.url);
-
-      if (response.success && response.url) {
-        console.log('[Quote] ✅ Redirecting to Stripe:', response.url);
-        // Redirect to Stripe Checkout - page will navigate away
-        window.location.href = response.url;
+      if (data?.url) {
+        console.log('[Quote] ✅ Redirecting to Stripe:', data.url);
+        window.location.href = data.url;
       } else {
-        console.error('[Quote] ❌ Invalid response:', response);
-        throw new Error(response.error || 'Failed to create checkout session');
+        console.error('[Quote] ❌ No URL in response:', data);
+        throw new Error('No checkout URL received');
       }
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('[Quote] Payment error:', error);
       toast({
         title: "Payment setup failed",
-        description: "Please try again or contact support",
+        description: error instanceof Error ? error.message : "Please try again or contact support",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
