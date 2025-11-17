@@ -135,10 +135,42 @@ const Quote = () => {
   };
 
   const handlePayNow = async () => {
-    if (!priceBreakdown || !formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
+    // Validate all required fields
+    if (!priceBreakdown) {
+      toast({
+        title: "Calculate price first",
+        description: "Please calculate the price before proceeding to payment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields including phone number",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate phone format (basic check)
+    const phoneRegex = /^\+?[\d\s\-()]+$/;
+    if (!phoneRegex.test(formData.phone) || formData.phone.length < 10) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid phone number",
         variant: "destructive",
       });
       return;
