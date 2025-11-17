@@ -87,20 +87,11 @@ CREATE TRIGGER update_webhook_config_updated_at
 
 -- Seed webhook_config with all 25 webhooks
 INSERT INTO public.webhook_config (webhook_name, webhook_type, description) VALUES
--- Supabase Edge Functions (11 webhooks)
+-- Supabase Edge Functions (1 webhook)
 ('calculate-quote', 'edge-function', 'Calculate delivery quote based on pricing rules'),
-('track-order', 'edge-function', 'Public endpoint to track order by order number'),
-('driver-status', 'edge-function', 'Update driver availability status'),
-('driver-job-action', 'edge-function', 'Driver accepts or declines job assignment'),
-('driver-location', 'edge-function', 'Update driver GPS location'),
-('driver-earnings', 'edge-function', 'Fetch driver earnings and completed deliveries'),
-('update-pricing', 'edge-function', 'Admin updates to pricing rules'),
-('fetch-notifications', 'edge-function', 'Get notifications for user'),
-('mark-notification-read', 'edge-function', 'Mark notification as read'),
-('fetch-orders', 'edge-function', 'Fetch orders with role-based filters'),
-('update-delivery-instructions', 'edge-function', 'Update order special instructions'),
 
--- Make.com Webhooks (14 webhooks)
+-- Make.com Webhooks (15 webhooks)
+('quote-accepted', 'make-webhook', 'Quote accepted -> create contact and deal'),
 ('process-payment', 'make-webhook', 'Create HubSpot Contact/Deal, process Stripe payment, create order'),
 ('stripe-payment-success', 'make-webhook', 'Handle Stripe webhook - update HubSpot Deal, create order, notify dispatchers'),
 ('assign-driver', 'make-webhook', 'Assign driver to order - update HubSpot Deal, DB, notify driver & customer'),

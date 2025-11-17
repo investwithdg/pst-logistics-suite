@@ -67,8 +67,16 @@ export const callWebhook = async <T = any>(
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const result = await response.json();
-      return result;
+      const result = await response.json().catch(() => null);
+
+      if (result && typeof result === 'object' && 'success' in result) {
+        return result;
+      }
+
+      return {
+        success: true,
+        data: result ?? undefined,
+      };
     }
   } catch (error: any) {
     console.error(`[Webhook Error] ${functionName}:`, error);
@@ -82,6 +90,8 @@ export const callWebhook = async <T = any>(
 
 // Helper to get webhook URL from configuration
 async function getWebhookUrl(webhookName: string): Promise<string | null> {
+  let record: { webhook_url?: string | null; is_active?: boolean | null } | null = null;
+
   try {
     const { data, error } = await supabase
       .from('webhook_config')
@@ -92,22 +102,46 @@ async function getWebhookUrl(webhookName: string): Promise<string | null> {
 
     if (error) {
       console.error(`[Webhook Config] Error fetching ${webhookName}:`, error);
-      return null;
+    } else {
+      record = data;
     }
-
-    if (!data?.is_active) {
-      console.warn(`[Webhook Config] ${webhookName} is not active`);
-      return null;
-    }
-
-    if (!data?.webhook_url) {
-      console.warn(`[Webhook Config] ${webhookName} URL not configured`);
-      return null;
-    }
-
-    return data.webhook_url;
   } catch (error) {
     console.error(`[Webhook Config] Unexpected error for ${webhookName}:`, error);
+  }
+
+  if (record?.is_active && record?.webhook_url) {
+    return record.webhook_url;
+  }
+
+  // Fallback: read webhook URL from environment if DB is missing/inactive
+  const envUrl = getEnvWebhookUrl(webhookName);
+  if (envUrl) {
+    console.warn(`[Webhook Config] Using env fallback for ${webhookName}`);
+    return envUrl;
+  }
+
+  if (record && record.is_active === false) {
+    console.warn(`[Webhook Config] ${webhookName} is not active`);
+  } else {
+    console.warn(`[Webhook Config] ${webhookName} URL not configured`);
+  }
+
+  return null;
+}
+
+// Helper: resolve Make webhook URL from environment variables as a fallback.
+// For a webhookName like "quote-accepted", it will look for:
+// VITE_MAKE_QUOTE_ACCEPTED_URL
+function getEnvWebhookUrl(webhookName: string): string | null {
+  try {
+    const env = import.meta.env as Record<string, string | undefined>;
+    const key = `VITE_MAKE_${webhookName.replace(/-/g, '_').toUpperCase()}_URL`;
+    const candidate = env?.[key];
+    if (candidate && /^https?:\/\//i.test(candidate)) {
+      return candidate;
+    }
+    return null;
+  } catch {
     return null;
   }
 }
@@ -119,49 +153,14 @@ export const api = {
     return callWebhook('calculate-quote', data, 'edge-function');
   },
 
-  trackOrder: async (orderNumber: string): Promise<ApiResponse> => {
-    return callWebhook('track-order', { orderNumber }, 'edge-function');
-  },
-
-  updateDriverStatus: async (driverId: string, status: string): Promise<ApiResponse> => {
-    return callWebhook('driver-status', { driverId, status }, 'edge-function');
-  },
-
-  driverJobAction: async (orderId: string, action: 'accept' | 'decline'): Promise<ApiResponse> => {
-    return callWebhook('driver-job-action', { orderId, action }, 'edge-function');
-  },
-
-  updateDriverLocation: async (driverId: string, lat: number, lng: number): Promise<ApiResponse> => {
-    return callWebhook('driver-location', { driverId, lat, lng }, 'edge-function');
-  },
-
-  fetchDriverEarnings: async (driverId: string): Promise<ApiResponse> => {
-    return callWebhook('driver-earnings', { driverId }, 'edge-function');
-  },
-
-  updatePricing: async (pricingData: any): Promise<ApiResponse> => {
-    return callWebhook('update-pricing', pricingData, 'edge-function');
-  },
-
-  fetchNotifications: async (userId: string): Promise<ApiResponse> => {
-    return callWebhook('fetch-notifications', { userId }, 'edge-function');
-  },
-
-  markNotificationRead: async (notificationId: string): Promise<ApiResponse> => {
-    return callWebhook('mark-notification-read', { notificationId }, 'edge-function');
-  },
-
-  fetchOrders: async (filters?: any): Promise<ApiResponse> => {
-    return callWebhook('fetch-orders', filters, 'edge-function');
-  },
-
-  updateDeliveryInstructions: async (orderId: string, instructions: string): Promise<ApiResponse> => {
-    return callWebhook('update-delivery-instructions', { orderId, instructions }, 'edge-function');
-  },
-
   // Make.com Webhooks (Complex orchestration)
+  // Step I: Quote Accepted -> Create Contact + Deal
+  quoteAccepted: async (data: any): Promise<ApiResponse> => {
+    return callWebhook('quote-accepted', data, 'make-webhook');
+  },
+
   processPayment: async (data: any): Promise<ApiResponse> => {
-    return callWebhook('create-checkout-session', data, 'edge-function');
+    return callWebhook('process-payment', data, 'make-webhook');
   },
 
   assignDriver: async (data: { orderId: string; driverId: string }): Promise<ApiResponse> => {
@@ -193,10 +192,5 @@ export const api = {
 
   reassignDriver: async (orderId: string, newDriverId: string): Promise<ApiResponse> => {
     return callWebhook('reassign-driver', { orderId, newDriverId }, 'make-webhook');
-  },
-
-  // Sync quote acceptance to HubSpot (creates contact + deal before payment)
-  syncQuoteToHubSpot: async (quoteData: any): Promise<ApiResponse> => {
-    return callWebhook('sync-hubspot-quote', quoteData, 'edge-function');
   },
 };

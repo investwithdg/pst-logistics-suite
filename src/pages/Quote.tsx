@@ -90,23 +90,7 @@ const Quote = () => {
           weightCharge: response.data.surcharge,
           total: response.data.totalPrice,
         });
-        
-        // Send to HubSpot webhook
-        await supabase.functions.invoke('sync-hubspot-quote', {
-          body: {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            pickupAddress: formData.pickupAddress,
-            dropoffAddress: formData.dropoffAddress,
-            amount: response.data.totalPrice,
-            deliverySize: formData.deliverySize,
-            weight: parseFloat(formData.weight || "0"),
-            specialInstructions: formData.specialInstructions,
-            distance: accurateDistance,
-          }
-        });
-        
+
         toast({
           title: "Price calculated",
           description: `Distance: ${accurateDistance.toFixed(1)} miles • Total: $${response.data.totalPrice.toFixed(2)}`,
@@ -138,33 +122,68 @@ const Quote = () => {
       description: "Syncing with HubSpot and preparing payment",
     });
 
+    const parsedWeight = parseFloat(formData.weight || "0");
+    const parsedDistance = parseFloat(formData.distance || "0");
+
+    const quotePayload = {
+      customer_name: `${formData.firstName} ${formData.lastName}`,
+      customer_email: formData.email,
+      customer_phone: formData.phone,
+      pickup_address: formData.pickupAddress,
+      dropoff_address: formData.dropoffAddress,
+      package_description: formData.deliverySize || "Package delivery",
+      package_weight: parsedWeight,
+      distance: parsedDistance,
+      total_price: priceBreakdown.total,
+      base_rate: priceBreakdown.baseRate,
+      mileage_charge: priceBreakdown.distanceCharge,
+      surcharge: priceBreakdown.weightCharge,
+      special_instructions: formData.specialInstructions,
+    };
+
+    const legacyQuotePayload = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      pickupAddress: formData.pickupAddress,
+      dropoffAddress: formData.dropoffAddress,
+      amount: priceBreakdown.total,
+      deliverySize: formData.deliverySize,
+      weight: parsedWeight,
+      specialInstructions: formData.specialInstructions,
+      distance: parsedDistance,
+    };
+
+    const fallbackHubspotSync = async () => {
+      try {
+        const { error } = await supabase.functions.invoke('sync-hubspot-quote', {
+          body: legacyQuotePayload,
+        });
+        if (error) throw error;
+        console.log('[Quote] Legacy HubSpot sync succeeded');
+      } catch (legacyError) {
+        console.error('[Quote] Legacy HubSpot sync failed', legacyError);
+      }
+    };
+
     try {
-      // First, sync quote to HubSpot to create contact + deal
+      // First, notify Make.com (Quote Accepted) to create contact + deal
       let hubspotDealId = null;
       try {
-        const quoteSync = await api.syncQuoteToHubSpot({
-          customer_name: `${formData.firstName} ${formData.lastName}`,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-          pickup_address: formData.pickupAddress,
-          dropoff_address: formData.dropoffAddress,
-          package_description: formData.deliverySize || "Package delivery",
-          package_weight: parseFloat(formData.weight),
-          distance: parseFloat(formData.distance),
-          total_price: priceBreakdown.total,
-          base_rate: priceBreakdown.baseRate,
-          mileage_charge: priceBreakdown.distanceCharge,
-          surcharge: priceBreakdown.weightCharge,
-          special_instructions: formData.specialInstructions,
-        });
+        const quoteSync = await api.quoteAccepted(quotePayload);
         
-        if (quoteSync.success && quoteSync.data) {
-          hubspotDealId = quoteSync.data.hubspot_deal_id;
+        const hubspotId = quoteSync.success ? quoteSync.data?.hubspot_deal_id : null;
+
+        if (hubspotId) {
+          hubspotDealId = hubspotId;
           console.log('[Quote] HubSpot deal created:', hubspotDealId);
+        } else {
+          console.warn('[Quote] quote-accepted webhook missing hubspot_deal_id, using legacy sync');
+          await fallbackHubspotSync();
         }
       } catch (error) {
         console.warn('[Quote] Failed to sync to HubSpot:', error);
-        // Continue with payment even if HubSpot sync fails
+        await fallbackHubspotSync();
       }
 
       // Now proceed with payment, including the HubSpot deal ID
@@ -174,8 +193,8 @@ const Quote = () => {
         customerPhone: formData.phone,
         pickupAddress: formData.pickupAddress,
         dropoffAddress: formData.dropoffAddress,
-        distance: parseFloat(formData.distance),
-        packageWeight: parseFloat(formData.weight || "0"),
+        distance: parsedDistance,
+        packageWeight: parsedWeight,
         packageDescription: formData.specialInstructions || "Package delivery",
         amount: priceBreakdown.total,
         baseRate: priceBreakdown.baseRate,

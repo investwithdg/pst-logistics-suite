@@ -1,4 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,8 +8,45 @@ import { CheckCircle } from "lucide-react";
 
 const ThankYou = () => {
   const [searchParams] = useSearchParams();
-  const orderNumber = searchParams.get('order_number') || 'Processing...';
   const sessionId = searchParams.get('session_id');
+  const initialOrderNumber = searchParams.get('order_number');
+  const [orderNumber, setOrderNumber] = useState<string>(initialOrderNumber || 'Processing...');
+
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+    let resolved = Boolean(initialOrderNumber);
+
+    async function pollForOrder() {
+      // Stop if URL already had the order number, resolved, or missing session
+      if (cancelled || resolved || !sessionId) return;
+      try {
+        const { data, error } = await supabase
+          .from('orders' as any)
+          .select('order_number')
+          .eq('stripe_session_id', sessionId)
+          .maybeSingle();
+        if (error) {
+          // continue polling on transient errors
+          return;
+        }
+        if (data?.order_number && !cancelled) {
+          setOrderNumber(data.order_number);
+          resolved = true;
+          return;
+        }
+      } finally {
+        attempts += 1;
+        // Continue polling only while we haven't found an order number yet
+        if (!cancelled && !resolved && attempts < 20) {
+          setTimeout(pollForOrder, 1500);
+        }
+      }
+    }
+
+    pollForOrder();
+    return () => { cancelled = true; };
+  }, [initialOrderNumber, sessionId]);
 
   return (
     <div className="min-h-screen bg-muted/30">
