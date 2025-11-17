@@ -16,7 +16,7 @@ serve(async (req) => {
     const body = await req.json();
     console.log('[sync-hubspot-quote] Received data:', body);
 
-    // Send to Make.com webhook
+    // Send to Make.com webhook - standardized to use all three distinct fields
     const webhookPayload = {
       firstName: body.firstName,
       lastName: body.lastName,
@@ -24,9 +24,10 @@ serve(async (req) => {
       pickupAddress: body.pickupAddress,
       dropoffAddress: body.dropoffAddress,
       amount: body.amount,
-      deliverySize: body.deliverySize,
-      weight: body.weight,
-      specialInstructions: body.specialInstructions,
+      deliverySize: body.deliverySize || body.delivery_size,
+      packageDescription: body.packageDescription || body.package_description,
+      specialInstructions: body.specialInstructions || body.special_instructions,
+      weight: body.weight || body.package_weight,
       distance: body.distance,
       timestamp: new Date().toISOString(),
     };

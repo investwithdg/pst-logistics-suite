@@ -32,6 +32,7 @@ const Quote = () => {
     distance: "",
     weight: "35",
     deliverySize: "",
+    packageDescription: "",
     specialInstructions: "",
   });
 
@@ -131,14 +132,15 @@ const Quote = () => {
       customer_phone: formData.phone,
       pickup_address: formData.pickupAddress,
       dropoff_address: formData.dropoffAddress,
-      package_description: formData.deliverySize || "Package delivery",
+      delivery_size: formData.deliverySize,
+      package_description: formData.packageDescription,
+      special_instructions: formData.specialInstructions,
       package_weight: parsedWeight,
       distance: parsedDistance,
       total_price: priceBreakdown.total,
       base_rate: priceBreakdown.baseRate,
       mileage_charge: priceBreakdown.distanceCharge,
       surcharge: priceBreakdown.weightCharge,
-      special_instructions: formData.specialInstructions,
     };
 
     const legacyQuotePayload = {
@@ -149,8 +151,9 @@ const Quote = () => {
       dropoffAddress: formData.dropoffAddress,
       amount: priceBreakdown.total,
       deliverySize: formData.deliverySize,
-      weight: parsedWeight,
+      packageDescription: formData.packageDescription,
       specialInstructions: formData.specialInstructions,
+      weight: parsedWeight,
       distance: parsedDistance,
     };
 
@@ -210,7 +213,7 @@ const Quote = () => {
         deliverySize: formData.deliverySize,
       });
 
-      // Now proceed with payment, including the HubSpot deal ID
+      // Now proceed with payment, including the HubSpot deal ID and all three distinct fields
       const response = await api.processPayment({
         customerName: `${formData.firstName} ${formData.lastName}`,
         customerEmail: formData.email,
@@ -219,8 +222,9 @@ const Quote = () => {
         dropoffAddress: formData.dropoffAddress,
         distance: parsedDistance,
         packageWeight: parsedWeight,
-        packageDescription: formData.specialInstructions || "Package delivery",
         deliverySize: formData.deliverySize,
+        packageDescription: formData.packageDescription,
+        specialInstructions: formData.specialInstructions,
         amount: priceBreakdown.total,
         baseRate: priceBreakdown.baseRate,
         mileageCharge: priceBreakdown.distanceCharge,
@@ -395,6 +399,17 @@ const Quote = () => {
                     placeholder="e.g., Small, Medium, Large"
                     value={formData.deliverySize}
                     onChange={(e) => setFormData({ ...formData, deliverySize: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Package Description <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    placeholder="e.g., Documents, Electronics, Furniture"
+                    value={formData.packageDescription}
+                    onChange={(e) => setFormData({ ...formData, packageDescription: e.target.value })}
                   />
                 </div>
 
