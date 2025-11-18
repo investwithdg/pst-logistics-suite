@@ -8,10 +8,14 @@ A modern React application built with Vite, TypeScript, Tailwind CSS, shadcn/ui,
 - **UI**: Tailwind CSS, shadcn/ui (Radix primitives)
 - **Routing**: React Router v6
 - **Data**: TanStack Query
+- **Backend**: Supabase (PostgreSQL, Auth, Edge Functions, Realtime)
+- **Integration**: Make.com webhooks for orchestration
 
 ### Requirements
 - Node.js 18+ (Vite 5 requires Node 18 or newer)
 - npm (recommended). pnpm or bun may work, but npm is the default for this repo.
+- Supabase account (for database, auth, and Edge Functions)
+- Environment variables (see Configuration section)
 
 ### Quick start
 
@@ -19,9 +23,28 @@ A modern React application built with Vite, TypeScript, Tailwind CSS, shadcn/ui,
 # 1) Install dependencies
 npm install
 
-# 2) Start the dev server (binds on all interfaces, port 8080)
+# 2) Create .env file with required variables (see Configuration section)
+# Copy the template below and add your Supabase credentials
+
+# 3) Start the dev server (binds on all interfaces, port 8080)
 npm run dev
 # Open http://localhost:8080
+```
+
+### Configuration
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Required - Get these from your Supabase project settings
+VITE_SUPABASE_URL=your-supabase-project-url
+VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-anon-key
+
+# Optional - For Make.com webhook integrations
+VITE_MAKE_QUOTE_ACCEPTED_URL=your-make-webhook-url
+VITE_MAKE_PROCESS_PAYMENT_URL=your-make-webhook-url
+VITE_MAKE_ASSIGN_DRIVER_URL=your-make-webhook-url
+# ... other Make.com webhook URLs
 ```
 
 ### Available scripts
@@ -43,12 +66,17 @@ npm run lint
 ```
 src/
   components/          # Reusable components and UI primitives (shadcn/ui)
-  contexts/            # React context providers
+  contexts/            # React context providers (Auth, App state)
   hooks/               # Custom React hooks
-  lib/                 # Utilities, API helpers (mocked)
+  integrations/        # Supabase client configuration
+  lib/                 # Utilities, API helpers (webhooks & Edge Functions)
   pages/               # Route components grouped by area/role
   main.tsx             # App entry, mounts to #root
   App.tsx              # Router, providers, toasters
+
+supabase/
+  functions/           # Edge Functions for server-side logic
+  migrations/          # Database schema migrations
 ```
 
 - Tailwind config: `tailwind.config.ts`
@@ -75,7 +103,11 @@ Defined in `src/App.tsx` using React Router:
 
 ### Data and API
 - Query client is provided app-wide via TanStack Query.
-- API calls are currently mocked in `src/lib/api.ts` (no external services or env variables required).
+- API calls in `src/lib/api.ts` route to:
+  - **Supabase Edge Functions**: For quick calculations and database operations
+  - **Make.com webhooks**: For complex orchestration (payment processing, driver assignment)
+- Real-time updates via Supabase subscriptions in `AppContext`
+- Authentication handled by Supabase Auth with role-based access control
 
 ### Styling and UI
 - Tailwind CSS with a custom theme and CSS variables (see `tailwind.config.ts`).
@@ -101,6 +133,47 @@ npm run lint
 
 Configured via `eslint.config.js` with React and TypeScript rules.
 
+### Backend & Integrations
+
+The app integrates with several backend services:
+
+#### Supabase
+- **Database**: PostgreSQL with tables for orders, drivers, notifications, user_roles, webhook_config
+- **Auth**: User authentication with email/password
+- **Realtime**: Live updates for orders, drivers, and notifications
+- **Edge Functions**: Server-side logic for:
+  - `calculate-quote`: Quote generation
+  - `calculate-distance`: Distance calculations
+  - `calculate-eta`: Delivery time estimates
+  - `sync-driver-assignment`: HubSpot synchronization
+  - `create-checkout-session`: Payment initiation
+  - And more...
+
+#### Make.com Webhooks
+Complex business logic orchestration:
+- Quote acceptance → HubSpot contact/deal creation
+- Payment processing
+- Driver assignment and reassignment
+- Status updates and notifications
+- Order cancellation and refunds
+
+### Testing
+
+The app has been tested with:
+```bash
+# Build verification (requires .env with Supabase credentials)
+npm run build
+
+# Development server
+npm run dev
+```
+
+**Note**: Full functionality requires:
+1. Valid Supabase project with migrations applied
+2. Deployed Edge Functions
+3. Configured Make.com webhook URLs (optional, falls back to Edge Functions)
+
 ### Notes
 - The dev server binds to all interfaces (`host: "::"`) at port `8080`, so the app is accessible on your LAN at `http://<your-ip>:8080`.
-- No environment variables are required for local development; APIs are mocked.
+- Without proper Supabase configuration, the app will fail at runtime when attempting authentication or data operations.
+- See `HUBSPOT_SYNC_SETUP.md` and `HUBSPOT_WORKFLOW.md` for integration documentation.
